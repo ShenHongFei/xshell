@@ -2,14 +2,14 @@
 
 nodesh is a shell aimed at providing better human-computer interaction experiece.
 
-![REPL.png](./REPL.png)
+![REPL.png](https://cos.shenhongfei.com/asset/nodesh-repl.png)
 
 ## Installation
 1. Install latest version of NodeJS
 
-2. Install and run npm package `nodesh`
+2. Install and run npm package `@nodesh/nodesh`
 ```shell
-npm install --global nodesh
+npm install --global @nodesh/nodesh
 
 # start shell at 127.0.0.1:8421
 nodesh
