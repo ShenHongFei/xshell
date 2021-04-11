@@ -1,0 +1,8 @@
+node_modules/
+
+desktop.ini
+tsconfig.json
+.gitignore
+*.ts
+!*.d.ts
+*.pptx

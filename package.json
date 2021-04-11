@@ -8,28 +8,53 @@
         "interactive programming"
     ],
     "version": "0.0.1",
-    "type": "module",
-    "main": "index.js",
+    "type": "commonjs",
+    "main": "./src/Extension.js",
     "bin": {
         "nodesh": "./bin/nodesh.js"
     },
     "engines": {
-        "node": ">=15.14.0"
+        "node": ">=15.14.0",
+        "vscode": ">=1.22.0"
     },
     "scripts": {
-        "dev": "node --title=nodesh --inspect=0.0.0.0:8420 --loader=ts-node/esm --experimental-specifier-resolution=node ./bin/nodesh.ts",
-        "typecheck": "tsc --noEmit"
+        "start": "node --title=nodesh --inspect=0.0.0.0:8420 --loader=ts-node/esm --experimental-specifier-resolution=node ./bin/nodesh.ts",
+        "typecheck": "tsc --noEmit",
+        "build": "tsc"
     },
     "author": {
         "name": "ShenHongFei",
         "email": "shf19961008@gmail.com",
         "url": "https://github.com/ShenHongFei"
     },
+    "publisher": "ShenHongFei",
     "license": "MIT",
     "homepage": "https://github.com/ShenHongFei/nodesh",
     "repository": {
         "type": "git",
         "url": "https://github.com/ShenHongFei/nodesh"
+    },
+    "bugs": {
+        "url": "https://github.com/ShenHongFei/nodesh/issues"
+    },
+    "icon": "./shell.ico",
+    "extensionKind": [
+        "workspace"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "nodesh_repl",
+                "title": "nodesh_repl"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "nodesh_repl",
+                "key": "ctrl+enter",
+                "when": "editorTextFocus && (editorLangId == 'typescript' || editorLangId == 'javascript' || editorLangId == 'typescriptreact' || editorLangId == 'javascriptreact')"
+            }
+        ]
     },
     "dependencies": {
         "@koa/cors": "^3.1.0",
@@ -76,6 +101,7 @@
         "@types/request-promise-native": "^1.0.17",
         "@types/shortid": "^0.0.29",
         "@types/stream-buffers": "^3.0.3",
+        "@types/vscode": "^1.55.0",
         "ts-node": "^9.1.1"
     }
 }

@@ -1,15 +1,15 @@
 {
     "compilerOptions": {
         // --- Module
-        "module": "ESNext", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
+        "module": "CommonJS", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
         "moduleResolution": "Node",
         "allowSyntheticDefaultImports": true,
-        "esModuleInterop": false,
+        "esModuleInterop": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
         
         // --- Build
-        "target": "ESNext",
+        "target": "ES2018",
         "allowJs": false,
         "checkJs": false,
         "pretty": true,
