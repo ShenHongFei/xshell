@@ -102,5 +102,5 @@ export function activate (ctx: ExtensionContext) {
     my_commands.forEach( ({ func }) => {
         ctx.subscriptions.push(commands.registerCommand(func.name, func))
     })
-    console.log('nodesh loaded')
+    console.log('xshell loaded')
 }

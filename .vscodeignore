@@ -6,6 +6,6 @@
 .gitignore
 .npmignore
 .vscodeignore
-nodesh.ico
+xshell.ico
 desktop.ini
 REPL.png

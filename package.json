@@ -1,17 +1,17 @@
 {
-    "name": "@nodesh/nodesh",
-    "description": "nodesh is a shell aimed at providing better human-computer interaction experiece.",
+    "name": "xshell",
+    "description": "xshell is a shell aimed at providing a brand new human-computer interaction experiece.",
     "keywords": [
         "shell",
         "node",
         "repl",
         "interactive programming"
     ],
-    "version": "0.0.2",
+    "version": "0.0.1",
     "type": "commonjs",
-    "main": "./Extension.js",
+    "main": "./index.js",
     "bin": {
-        "nodesh": "./nodesh.js"
+        "xshell": "./xshell.js"
     },
     "engines": {
         "node": ">=15.14.0",

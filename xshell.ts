@@ -2,6 +2,6 @@
 
 global.started_at = new Date()
 
-import { start_repl } from '../src/REPL'
+import { start_repl } from './REPL'
 
 start_repl()

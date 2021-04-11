@@ -493,7 +493,7 @@ export async function repl_code (type: string, ...args: any[]) {
 
 export async function start_repl () {
     // ------------ 加载库
-    log_section('Shell is staring ...', { timestamp: true })
+    log_section('xshell is booting ...', { timestamp: true })
     
     // process.env.TS_NODE_FILES = true
     // require('ts-node/register/transpile-only')
@@ -510,7 +510,7 @@ export async function start_repl () {
     
     log_module_loaded('Net')
     
-    log_section('REPL is starting', { color: 'yellow', timestamp: true })
+    log_section('REPL is initializing', { color: 'yellow', timestamp: true })
     
     // --- prevent from exiting
     process.on('uncaughtException', error => { console.error(error) })
@@ -526,16 +526,16 @@ export async function start_repl () {
     
     console.log(`${'NodeJS REPL'.pad(20)}loaded`)
     
-    process.title = 'REPL'
+    process.title = 'xshell'
     
     await Promise.all([
         // --- DB, Server, Webpack
         (async () => {
             // --- HTTP Server
-            log_section('HTTP Server is starting', { color: 'green', timestamp: true })
+            log_section('HTTP Server is initializing', { color: 'green', timestamp: true })
             global.server = (await import('./Server')).default
             await global.server.start()
-            log_section('HTTP Server started', { color: 'green', timestamp: true })
+            log_section('HTTP Server initialized', { color: 'green', timestamp: true })
         })(),
         
         pollute_global(),
@@ -543,12 +543,12 @@ export async function start_repl () {
         load_tsconfig(),
     ])
     
-    log_section('Shell started successfully', { color: 'red', timestamp: true })
+    log_section('xshell booted successfully', { color: 'red', timestamp: true })
 }
 
 
 export async function stop () {
-    log_section('Shell is exiting', { color: 'red' })
+    log_section('xshell is exiting', { color: 'red' })
     
     Object.values(fwatchers).forEach( watcher => { watcher.close() })
     
