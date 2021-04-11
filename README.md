@@ -1,10 +1,10 @@
 # xshell
 
-xshell is a shell aimed at providing a brand new human-computer interaction experiece
+xshell is a shell designed to provide a brand new human-computer interaction experience.
 
 ![REPL.png](https://cos.shenhongfei.com/assets/xshell-repl.png)
 
-## Installation
+## Getting Started
 1. Install the latest version of NodeJS
 https://nodejs.org/en/
 
@@ -24,12 +24,3 @@ code --install-extension shenhongfei.xshell
 ```
 - or: search `xshell` in vscode extension sidebar and click install
 - or: goto https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell
-
-
-## Usage
-1. Open any .js or .ts file
-2. Select a segment of code and press `ctrl + enter`
-3. You can inspect the result in shell
-
-## Publish
-
