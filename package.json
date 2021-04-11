@@ -7,7 +7,7 @@
         "repl",
         "interactive programming"
     ],
-    "version": "0.0.1",
+    "version": "0.0.2",
     "type": "commonjs",
     "main": "./index.js",
     "bin": {
