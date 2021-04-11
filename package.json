@@ -9,7 +9,7 @@
     ],
     "version": "0.0.2",
     "type": "commonjs",
-    "main": "./index.js",
+    "main": "./Extension.js",
     "bin": {
         "xshell": "./xshell.js"
     },
@@ -18,7 +18,7 @@
         "vscode": ">=1.55.0"
     },
     "scripts": {
-        "start": "node --title=nodesh --inspect=0.0.0.0:8420 ./bin/nodesh.js",
+        "start": "node --title=xshell --inspect=0.0.0.0:8420 ./xshell.js",
         "typecheck": "tsc --noEmit",
         "build": "tsc",
         "package": "vsce package",
@@ -32,15 +32,15 @@
     },
     "publisher": "ShenHongFei",
     "license": "MIT",
-    "homepage": "https://github.com/ShenHongFei/nodesh",
+    "homepage": "https://github.com/ShenHongFei/xshell",
     "repository": {
         "type": "git",
-        "url": "https://github.com/ShenHongFei/nodesh"
+        "url": "https://github.com/ShenHongFei/xshell"
     },
     "bugs": {
-        "url": "https://github.com/ShenHongFei/nodesh/issues"
+        "url": "https://github.com/ShenHongFei/xshell/issues"
     },
-    "icon": "nodesh.png",
+    "icon": "xshell.png",
     "extensionKind": [
         "workspace"
     ],
@@ -50,13 +50,13 @@
     "contributes": {
         "commands": [
             {
-                "command": "nodesh_repl",
-                "title": "nodesh_repl"
+                "command": "xshell_repl",
+                "title": "xshell_repl"
             }
         ],
         "keybindings": [
             {
-                "command": "nodesh_repl",
+                "command": "xshell_repl",
                 "key": "ctrl+enter",
                 "when": "editorTextFocus && (editorLangId == 'typescript' || editorLangId == 'javascript' || editorLangId == 'typescriptreact' || editorLangId == 'javascriptreact')"
             }
