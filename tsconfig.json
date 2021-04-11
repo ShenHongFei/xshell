@@ -1,0 +1,56 @@
+{
+    "compilerOptions": {
+        // --- Module
+        "module": "ESNext", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
+        "moduleResolution": "Node",
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": false,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        
+        // --- Build
+        "target": "ESNext",
+        "allowJs": false,
+        "checkJs": false,
+        "pretty": true,
+        "newLine": "lf",
+        "lib": ["ESNext", "DOM"],
+        "importHelpers": true,
+        // "watch": false
+        // "incremental": true,
+        // "tsBuildInfoFile": "./build/.tsbuildinfo",
+        
+        
+        // --- Emit
+        "declaration": false,
+        "emitDeclarationOnly": false,
+        "noEmitOnError": false,
+        "listEmittedFiles": true,
+        
+        // --- Source Maps
+        "sourceMap": true,
+        "inlineSourceMap": false,
+        "inlineSources": false,
+        
+        // --- Features
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "preserveSymlinks": true,
+        "jsx": "react",
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "forceConsistentCasingInFileNames": true,
+        
+        
+        // --- Type Checking
+        "strict": false,
+        "alwaysStrict": false,
+        "noImplicitAny": false,
+        "noImplicitReturns": false,
+        "noImplicitThis": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "skipLibCheck": true,
+    }
+}
+
