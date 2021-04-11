@@ -2,20 +2,33 @@
 
 nodesh is a shell aimed at providing better human-computer interaction experiece.
 
-![REPL.png](https://cos.shenhongfei.com/asset/nodesh-repl.png)
+![REPL.png](https://cos.shenhongfei.com/assets/nodesh-repl.png)
 
 ## Installation
-1. Install latest version of NodeJS
+1. Install the latest version of NodeJS
+https://nodejs.org/en/
 
-2. Install and run npm package `@nodesh/nodesh`
+2. Install the npm package `@nodesh/nodesh` and you will get a `nodesh` command
 ```shell
 npm install --global @nodesh/nodesh
+```
 
-# start shell at 127.0.0.1:8421
+3. Run `nodesh` to start the shell at http://127.0.0.1:8421
+```shell
 nodesh
 ```
 
-3. Install VSCode extenstion `nodesh`
+4. Install the VSCode extenstion `shenhongfei.nodesh`
+- command line:
 ```shell
-code
+code --install-extension shenhongfei.nodesh
 ```
+- or: search `nodesh` in vscode extension sidebar
+- or: goto https://marketplace.visualstudio.com/items?itemName=ShenHongFei.nodesh
+
+
+## Usage
+1. Open any .js or .ts file
+2. Select a segment of code and press `ctrl + enter`
+3. You can inspect the result in shell
+

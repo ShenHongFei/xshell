@@ -1,5 +1,3 @@
-node_modules/
-
 *.ts
 !*.d.ts
 *.pptx
@@ -8,6 +6,6 @@ node_modules/
 /.gitignore
 /.npmignore
 /.vscodeignore
-/nodesh.png
 /nodesh.ico
 /desktop.ini
+/REPL.png
