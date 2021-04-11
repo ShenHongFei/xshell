@@ -1,5 +1,5 @@
 {
-    "name": "nodesh",
+    "name": "@nodesh/nodesh",
     "description": "nodesh is a shell aimed at providing better human-computer interaction experiece.",
     "keywords": [
         "shell",
@@ -9,9 +9,9 @@
     ],
     "version": "0.0.2",
     "type": "commonjs",
-    "main": "./src/Extension.js",
+    "main": "./Extension.js",
     "bin": {
-        "nodesh": "./bin/nodesh.js"
+        "nodesh": "./nodesh.js"
     },
     "engines": {
         "node": ">=15.14.0",
@@ -22,7 +22,7 @@
         "typecheck": "tsc --noEmit",
         "build": "tsc",
         "package": "vsce package",
-        "publish": "npm publish --access=public",
+        "publish:npm": "npm publish --access=public",
         "publish:extension": "vsce publish"
     },
     "author": {

@@ -3,9 +3,9 @@
 *.pptx
 *.vsix
 
-/.gitignore
-/.npmignore
-/.vscodeignore
-/nodesh.ico
-/desktop.ini
-/REPL.png
+.gitignore
+.npmignore
+.vscodeignore
+nodesh.ico
+desktop.ini
+REPL.png

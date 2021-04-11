@@ -22,7 +22,7 @@
         
         
         // --- Emit
-        "declaration": false,
+        "declaration": true,
         "emitDeclarationOnly": false,
         "noEmitOnError": false,
         "listEmittedFiles": true,
