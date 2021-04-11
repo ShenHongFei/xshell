@@ -7,7 +7,7 @@ import { rpc } from './Net'
 
 const my_commands = [
     {
-        func: async function nodesh_repl () {
+        func: async function xshell_repl () {
             const editor = window.activeTextEditor
             const doc = editor.document
             

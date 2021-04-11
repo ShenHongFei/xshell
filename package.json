@@ -1,13 +1,13 @@
 {
     "name": "xshell",
-    "description": "xshell is a shell aimed at providing a brand new human-computer interaction experiece.",
+    "description": "xshell is a shell designed to provide a brand new human-computer interaction experience.",
     "keywords": [
         "shell",
         "node",
         "repl",
         "interactive programming"
     ],
-    "version": "0.0.2",
+    "version": "0.0.3",
     "type": "commonjs",
     "main": "./Extension.js",
     "bin": {
