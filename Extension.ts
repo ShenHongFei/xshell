@@ -33,7 +33,7 @@ const my_commands = [
 ]
 
 
-/** 获取选择区域的文本，若选择为空，则根据 selector 确定 (当前 | 全部文本 | 空) */
+/** get text by selector */
 function get_text (selector: 
     'ALL' | 
     'LINE' | 

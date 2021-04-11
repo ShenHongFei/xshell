@@ -20,13 +20,13 @@ interface StartOptions {
     /** `'D:/'` */
     cwd?: string
     
-    /** `process.env` 覆盖/添加到 process.env 的环境变量 */
+    /** `process.env` overwrite/add to process.env */
     env?: Record<string, string>
     
-    /** `'UTF-8'` 子进程输出编码 */
+    /** `'UTF-8'` child output encoding */
     encoding?: Encoding
     
-    /** `true` print 选项，支持设置细项 */
+    /** `true` print option (with details) */
     print?: boolean | {
             command?: boolean
             stdout?: boolean
@@ -35,23 +35,23 @@ interface StartOptions {
             error?: boolean
         }
     
-    /** `'pipe'` 设置为 'ignore' 时忽略 stdio 处理 */
+    /** `'pipe'` when 'ignore' then ignore stdio processing */
     stdio?: 'pipe' | 'ignore'
     
-    /** `false` 是否断开和 child 的关系 (ignore stdio, unref) */
+    /** `false` whether to break the connection with child (ignore stdio, unref) */
     detached?: boolean
 }
 
 /** start process 
-    - exe: .exe 路径或文件名 (建议使用完整路径，跳过 PATH 搜索，性能更高)
-    - args: `[]` 参数列表
+    - exe: .exe path or filename (full path is recommanded to skip PATH searching for better perf)
+    - args: `[]` arguments list
     - options
         - cwd?: `'D:/'`
-        - env?: `process.env` 覆盖／添加到 process.env 的环境变量
-        - encoding?: `'UTF-8'` 子进程输出编码
-        - print?: `true` print 选项，支持设置细项
-        - stdio?: `'pipe'` 设置为 'ignore' 时忽略 stdio 处理
-        - detached?: `false` 是否断开和 child 的关系 (ignore stdio, unref)
+        - env?: `process.env` overwrite/add to process.env
+        - encoding?: `'UTF-8'` child output encoding
+        - print?: `true` print option (with details)
+        - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
+        - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
 export function start (exe: string, args: string[] = [], {
     cwd = 'D:/',
@@ -94,7 +94,7 @@ export function start (exe: string, args: string[] = [], {
     if (stdio === 'pipe')
         child.stdin.setDefaultEncoding('utf8')
     
-    // 防止 child spawn 失败时 crash NodeJS 进程
+    // prevent child spawn error crashing NodeJS process
     child.on('error', error => {
         console.error(error)
     })
@@ -120,7 +120,7 @@ export function start (exe: string, args: string[] = [], {
 
 
 export interface CallOptions extends StartOptions {
-    /** `true` code 不为 0 时是否抛出异常 */
+    /** `true` whether to throw Error when code is not 0 */
     throw_code?: boolean
 }
 
@@ -136,16 +136,16 @@ export interface CallResult<T = string> {
 
 
 /** call process for result
-    - exe: .exe 路径或文件名 (建议使用路径，跳过 PATH 搜索，性能更高)
-    - args: `[]` 参数列表
+    - exe: .exe path or filename (full path is recommanded to skip PATH searching for better perf)
+    - args: `[]` arguments list
     - options
         - cwd?: `'D:/'`
-        - env?: `process.env` 覆盖／添加到 process.env 的环境变量
-        - encoding?: `'UTF-8'` 子进程输出编码
-        - print?: `true` print 选项，支持设置细项
-        - stdio?: `'pipe'` 设置为 'ignore' 时忽略 stdio 处理
-        - detached?: `false` 是否断开和 child 的关系 (ignore stdio, unref)
-        - throw_code?: `true` code 不为 0 时是否抛出异常
+        - env?: `process.env` overwrite/add to process.env
+        - encoding?: `'UTF-8'` child output encoding
+        - print?: `true` print option (with details)
+        - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
+        - detached?: `false` whether to break the connection with child (ignore stdio, unref)
+        - throw_code?: `true` whether to throw Error when code is not 0
 */
 export async function call (exe: string, args?: string[]): Promise<CallResult<string>>
 export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'BINARY', init_buffer_size?: number }): Promise<CallResult<Buffer>>
@@ -259,16 +259,16 @@ export async function call (exe: string, args: string[] = [], {
 
 
 /** call node <js> for result
-    - js: .js 路径 (相对路径根据 cwd 解析)
-    - args: `[]` 参数列表
+    - js: .js path (relative path will resolve based on cwd)
+    - args: `[]` arguments list
     - options
         - cwd?: `'D:/'`
-        - env?: `process.env` 覆盖／添加到 process.env 的环境变量
+        - env?: `process.env` overwrite/add to process.env
         - encoding?: `'UTF-8'` 子进程输出编码
-        - print?: `true` print 选项，支持设置细项
-        - stdio?: `'pipe'` 设置为 'ignore' 时忽略 stdio 处理
-        - detached?: `false` 是否断开和 child 的关系 (ignore stdio, unref)
-        - throw_code?: `true` code 不为 0 时是否抛出异常
+        - print?: `true` print option (with details)
+        - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
+        - detached?: `false` whether to break the connection with child (ignore stdio, unref)
+        - throw_code?: `true` whether to throw Error when code is not 0
 */
 export async function call_node (js: string, args: string[] = [], options?: CallOptions & { encoding?: 'UTF-8' | 'GB18030' }) {
     return call(EXE_NODE, [js, ...args], options)

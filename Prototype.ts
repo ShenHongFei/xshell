@@ -3,11 +3,7 @@ declare global {
         readonly width: number
         
         // --- 工具方法
-        /** 截取字符串不超过 width 显示宽度的部分，并保留颜色  
-            找到并记录能容纳 字符串 + … 的最后一个字符的位置 i_fitted  
-                若完整的字符串长度超过 width，返回 slice(0, i_fitted + 1) + …  
-                否则                          返回 this  
-         */
+        /** truncate string with fixed width and preserve color */
         truncate (this: string, width: number): string
         
         /** pad string to `<width>`  
@@ -37,10 +33,10 @@ declare global {
             
             pattern_: string,
             
-            /** `''` 保留的正则表达式字符 */
+            /** `''` preserved regexp characters */
             preservations?: string,
             
-            /** `''` 正则匹配选项 */
+            /** `''` regexp flags */
             flags?: string,
             
             /** `(name, matched) => matched || ''` placeholder transformer */
@@ -52,7 +48,7 @@ declare global {
         ): string
         
         
-        /** 字符串模式搜索
+        /** string pattern match
             ```ts
             'git+https://github.com/tamino-martinius/node-ts-dedent-123.git'.find(
                 '^{protocol:[\\w+]+}://{hostname:[\\w\\.]+}/{username}/{project}-{index:\\d+}.{suffix}', '^', 'i'
@@ -64,8 +60,8 @@ declare global {
             }
             ```
             
-            - preservations?: `''` 保留的正则表达式字符
-            - flags?: `''` 正则匹配选项
+            - preservations?: `''` preserved regexp characters
+            - flags?: `''` regexp flags
             - pattern_placeholder?: `/\{.*?\}/g`
         */
         find (this: string,
@@ -96,7 +92,7 @@ declare global {
         to_crlf (this: string): string
         
         /** 'xxx'.replace(/pattern/g, '')  
-            如果 pattern 是 string 则在创建 RegExp 时自动加上 flags (默认 'g'), 否则忽略 flags
+            if pattern is string then RegExp will add flags (default 'g'), else ignore flags
         */
         rm (this: string, pattern: string | RegExp, flags?: string): string
         
@@ -121,7 +117,7 @@ declare global {
         strip_ansi (this: string): string
         
         
-        // --- 文本处理
+        // --- text processing
         split_lines (this: string): string[]
         
         trim_doc_comment (this: string): string
@@ -137,7 +133,7 @@ declare global {
         space (this: string): string
         
         
-        // --- 文件路径操作
+        // --- path ops
         fdir: string
         
         /** aaa.txt */
@@ -146,7 +142,7 @@ declare global {
         /** .txt */
         fext: string
         
-        /** 文件或文件夹是否存在 (fs.existsSync) */
+        /** fs.existsSync */
         fexists: boolean
         
         is_dir: boolean
@@ -158,7 +154,7 @@ declare global {
     
     
     interface Date {
-        /** - ms?: `false` 显示到 ms */
+        /** - ms?: `false` show ms */
         to_str (this: Date, ms?: boolean): string
         
         to_date_str (this: Date): string
@@ -190,7 +186,7 @@ declare global {
         indent2to4 (this: string[]): string[]
         
         
-        // --- 文本处理
+        // --- text processing
         /**
             - trim_line?: `true`
             - rm_empty_lines?: `true`
@@ -288,11 +284,7 @@ Object.defineProperties( String.prototype, {
     
     // ------------ 文本处理工具方法
     ... to_method_property_descriptors({
-        /** 截取字符串不超过 width 显示宽度的部分，并保留颜色  
-            找到并记录能容纳 字符串 + … 的最后一个字符的位置 i_fitted  
-              - 若完整的字符串长度超过 width，返回 slice(0, i_fitted + 1) + …  
-              - 否则                          返回 this  
-         */
+        /** truncate string with fixed width and preserve color */
         truncate (this: string, width: number) {
             const color_bak = this.startsWith('\u001b') ? this.slice(0, 5) : ''
             const s = strip_ansi(this)
@@ -366,7 +358,7 @@ Object.defineProperties( String.prototype, {
             transformer: (name: string, value: string, placeholders: { [name: string]: string }) => string = (name, value) => value || '',
             pattern_placeholder = /\{.*?\}/g,
         ): string {
-            // --- 转换 pattern 为 pattern_regx
+            // --- convert pattern to pattern_regx
             let last_end = 0
             
             // placeholder matched group indexes
@@ -400,7 +392,7 @@ Object.defineProperties( String.prototype, {
             const pattern_regx = new RegExp( '^' + regx_parts.join('') + '$', flags )
             
             
-            // --- 根据 pattern_regx 去匹配原有字符串，获取匹配结果，生成 placeholders 词典
+            // --- match original string based on pattern_regx, and get result to build placeholders dict
             const matches = pattern_regx.exec(this)
             
             if (!matches) return this
@@ -412,7 +404,7 @@ Object.defineProperties( String.prototype, {
             ])).flat())
             
             
-            // --- 转换 pattern_ 为 replacement_str，如果有 transformer 则在遇到 placeholder 时应用
+            // --- convert pattern_ to replacement_str, if transformer exists then apply on placeholder
             last_end = 0
             let replacement_parts = [ ]
             
@@ -438,7 +430,7 @@ Object.defineProperties( String.prototype, {
             flags = '', 
             pattern_placeholder = /\{.*?\}/g
         ): { [name: string]: string } {
-            // --- 转换 pattern 为 pattern_regx
+            // --- convert pattern to pattern_regx
             let last_end = 0
             
             // placeholder matched group index
@@ -469,7 +461,7 @@ Object.defineProperties( String.prototype, {
             
             add_part(last_end)
             
-            // 最后一个 (.*?) 改为贪心匹配，满足 .{suffix} 的需要
+            // convert last (.*?) to greedy, to make .{suffix} work
             regx_parts = regx_parts.filter( part => part)
             if (regx_parts.last === '(.*?)')
                 regx_parts[ regx_parts.length - 1 ] = '(.*)'
@@ -477,7 +469,7 @@ Object.defineProperties( String.prototype, {
             const pattern_regx = new RegExp(regx_parts.join(''), flags)
             
             
-            // --- 根据 pattern_regx 去匹配原有字符串，获取匹配结果，生成 placeholders 词典
+           // --- match original string based on pattern_regx, and get result to build placeholders dict
             const matches = pattern_regx.exec(this)
             
             if (!matches) return { }
@@ -608,7 +600,7 @@ Object.defineProperties( String.prototype, {
     }]))),
     
     
-    // ------------ 文件路径操作
+    // ------------ file path ops
     ... to_getter_property_descriptors({
         fdir (this: string) {
             const dir = path.dirname(this)
@@ -697,7 +689,6 @@ Object.defineProperties( Number.prototype, to_method_property_descriptors({
     
     to_hex_str (this: number, length?: number) {
         const s = this.toString(16).toUpperCase()
-        // 长度自动对齐到 4 的倍数
         if (!length)
             length = Math.ceil(s.length / 4) * 4
         return `0x${'0'.repeat(length - s.length)}${s}`
@@ -719,7 +710,7 @@ Object.defineProperties( Array.prototype, {
     }),
     
     
-    // --- 文本处理工具方法
+    // --- text processing methods
     ... to_method_property_descriptors({
         log (this: string[], limit: number = 10000) {
             const text = this.join('\n') + '\n'

@@ -60,7 +60,7 @@ export { Cookie }
 export const _request = request_promise.defaults({
     rejectUnauthorized: false,
     gzip: true,
-    /** 防止 302 重定向产生错误 which is a boolean to set whether status codes other than 2xx should also reject the promise */
+    /** prevent 302 redirect cause error, which is a boolean to set whether status codes other than 2xx should also reject the promise */
     simple: false,
     
     jar: Cookies.jar
@@ -89,23 +89,23 @@ export async function request_retry (retries: number, request_options: request_p
 export interface RequestOptions {
     queries?: Record<string, any>
     
-    /** HTTP request body 数据 */
+    /** HTTP request body data */
     body?: string | Record<string, any>
     
-    /** 是否为 JSON 格式 */
+    /** is JSON format */
     json?: boolean
     
-    /** form (x-www-form-urlencoded 或 multipart)  格式 */
+    /** form (x-www-form-urlencoded or multipart)  format */
     form?: boolean | 'application/x-www-form-urlencoded' | 'multipart/form-data'
     
-    /** `false` proxy 为 true 时使用 MyProxy.whistle */
+    /** `false` when proxy is true then use MyProxy.whistle */
     proxy?: boolean | MyProxy | string
     
     method?: 'GET' | 'POST' | 'PUT' | 'HEAD' | 'DELETE' | 'PATCH'
     
     headers?: Record<string, string>
     
-    /** `(网页 content-type: charset=gb18030) || 'UTF-8'` */
+    /** `(webpage content-type: charset=gb18030) || 'UTF-8'` */
     encoding?: Encoding
     
     /** `false` */
@@ -309,7 +309,7 @@ export async function request_json <T = any> (url: string | URL, options?: Reque
 }
 
 
-/** 使用 $.html(cheerio_element) 来获取 outer html */
+/** use $.html(cheerio_element) to get outer html */
 export function parse_html (html: string) {
     let $ = cheerio.load(html, { decodeEntities: false })
     

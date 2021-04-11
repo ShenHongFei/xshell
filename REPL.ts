@@ -510,8 +510,6 @@ export async function start_repl () {
     
     log_module_loaded('Net')
     
-    log_section('REPL is initializing', { color: 'yellow', timestamp: true })
-    
     // --- prevent from exiting
     process.on('uncaughtException', error => { console.error(error) })
     
@@ -524,12 +522,11 @@ export async function start_repl () {
         terminal: true,
     })
     
-    console.log(`${'NodeJS REPL'.pad(20)}loaded`)
+    log_section('REPL initialized', { color: 'yellow', timestamp: true })
     
     process.title = 'xshell'
     
     await Promise.all([
-        // --- DB, Server, Webpack
         (async () => {
             // --- HTTP Server
             log_section('HTTP Server is initializing', { color: 'green', timestamp: true })

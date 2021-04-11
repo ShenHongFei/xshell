@@ -34,7 +34,7 @@ export async function fread (fp: string, {
         fp = path.join(dir, fp)
     
     if (print)
-        console.log('读取:', fp)
+        console.log('read:', fp)
         
     const buffer = await fsp.readFile(fp)
     
@@ -48,7 +48,7 @@ export async function fread (fp: string, {
         const { detect } = await import('chardet')
         encoding = detect(buffer) as any
         if (print)
-            console.log(`${fp} 的编码可能是 ${encoding}`)
+            console.log(`${fp} probably has encoding: ${encoding}`)
     }
     
     return iconv.decode(buffer, encoding)
@@ -68,7 +68,7 @@ export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', 
         fp = path.join(dir, fp)
     
     if (print)
-        console.log('写入:', fp)
+        console.log('write:', fp)
     
     if (encoding === 'GB18030')
         data = iconv.encode(data, encoding)
@@ -84,18 +84,18 @@ export async function fappend (fp: string, data: any, { dir, print = true }: { d
         fp = path.join(dir, fp)
     
     if (print)
-        console.log('追加:', fp)
+        console.log('append:', fp)
         
     if (!Buffer.isBuffer(data) && !is_str(data))
-        throw new Error('data 不是 Buffer 或 string')
+        throw new Error('data is not Buffer or string')
         
     await fsp.appendFile(fp, data)
 }
 
 
 /**
-    - deep?: `false` 递归遍历
-    - absolute?: `false` 输出绝对路径
+    - deep?: `false` recursively
+    - absolute?: `false` return absolute path
     - print?: `true`
     - filter?: `true`  RegExp | (fp: string) => any
 */
@@ -134,11 +134,11 @@ export async function flist (dirp: string, {
 
 export async function fdelete (fp: string, { print = true }: { print?: boolean } = { }) {
     if (fp.is_dir && fp.length > 5) {
-        console.log(( '删除文件夹: ' + fp ).red)
+        console.log(( 'delete directory: ' + fp ).red)
         await trash(fp, { glob: false })
     } else {
         if (print)
-            console.log('删除:', fp)
+            console.log('delete:', fp)
         await fsp.unlink(fp)
     }
 }
@@ -153,7 +153,7 @@ export async function fcopy (src: string, dst: string, { print = true }: { print
     if (dst.is_dir && dst.fexists)
         dst += src.fname
     if (print)
-        console.log(`复制: ${src} → ${dst}`)
+        console.log(`copy: ${src} → ${dst}`)
     await fse.copy(src, dst)
 }
 
@@ -162,15 +162,15 @@ export async function fmove (src: string, dst: string, { overwrite = false, prin
     if (!src.is_dir && dst.fexists && dst.is_dir)
         dst = path.join(dst, src.fname)
     if (print)
-        console.log(`移动: ${src} → ${dst}`)
+        console.log(`move: ${src} → ${dst}`)
     await fse.move(src, dst, { overwrite })
 }
 
 
-/** 重命名文件  
+/** rename file  
     - dir?
     - print?: `true`
-    - overwrite?: `true`  不检查效率更高
+    - overwrite?: `true`  better performance without check
  */
 export async function frename (fp: string, fp_: string, { dir, print = true, overwrite = true }: { dir?: string, print?: boolean, overwrite?: boolean } = { }) {
     if (dir) {
@@ -179,9 +179,9 @@ export async function frename (fp: string, fp_: string, { dir, print = true, ove
     }
     
     if (print)
-        console.log('重命名:', fp, '→', fp_)
+        console.log('rename:', fp, '→', fp_)
     
-    if (!overwrite && fp_.fexists) throw new Error('文件已存在：' + fp_)
+    if (!overwrite && fp_.fexists) throw new Error('file already exists：' + fp_)
     
     await fsp.rename(fp, fp_)
 }
@@ -193,11 +193,11 @@ export async function fmkdir (fp: string, options: fs.MakeDirectoryOptions & { p
     if (fp.fexists)
         if (fp.is_dir) {
             if (options.print && !options.suppress_existence)
-                console.log('文件夹已存在:', fp)
+                console.log('directory already exists:', fp)
             return
-        } else throw new Error('存在同名文件，无法创建文件夹: ' + fp)
+        } else throw new Error('file with same name already exists, cannot create directory: ' + fp)
     else if (options.print)
-        console.log('新建文件夹:', fp)
+        console.log('create new directory:', fp)
     
     await fsp.mkdir(fp, { recursive: true })
 }
@@ -218,14 +218,14 @@ export async function flink (
         if (fp_link.is_dir)
             fp_link = path.join(fp_link, fp_real.fname)
         else if ( (await fsp.lstat(fp_link)).isSymbolicLink() ) {
-            console.log('已存在符号链接:', fp_link)
+            console.log('link already exists:', fp_link)
             return
         } else
-            throw new Error('存在同名文件，无法创建链接')
+            throw new Error('file with same name already exists, cannot create new link')
         
     
     if (print)
-        console.log(`已将源文件 ${fp_real} 链接到 ${fp_link}`)
+        console.log(`source file ${fp_real} linked to ${fp_link}`)
     
     if (junction)
         fsp.symlink(fp_real, fp_link, 'junction')
@@ -249,22 +249,13 @@ export function link_shortcut (target: string, name: string, { args }: { args?: 
 }
 
 
-export async function fbackup (src: string, dest: string) {
-    dest = path.join('D:/bak/', dest)
-    console.log('新建备份:', src, '→', dest)
-    if (!dest.fdir.fexists)
-        await fmkdir(dest.fdir)
-    fcopy(src, dest)
-}
-
-
 export let fwatchers: Record<string, fs.FSWatcher> = { }
 
 /**
-    - fp: 文件或文件夹路径
-    - callback: 文件修改时回调
-    - exec: 首次 watch 时执行 onchange
-    创建的 fs.FSWatcher 保存在 watchers 中, 再次调用相同的 fp 会自动关闭已有的 watcher
+    - fp: path of file or directory
+    - callback: called when modified
+    - exec: call callback when watch is executed
+    save fs.FSWatcher in watchers, subsequent call will auto close existing watcher for the same fp
     
     https://nodejs.org/dist/latest-v15.x/docs/api/fs.html#fs_fs_watch_filename_options_listener  
     The listener callback gets two arguments (event, filename). 
@@ -292,7 +283,7 @@ export async function fwatch (fp: string, onchange: (event: string, filename: st
 }
 
 
-/** 打开一个文件并搜索替换某个 pattern */
+/** open a file and replace certain pattern */
 export async function freplace (fp: string, pattern: string | RegExp, replacement: string) {
     let text = await fread(fp)
     text = text.replaceAll(pattern, replacement)

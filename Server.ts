@@ -54,8 +54,6 @@ interface Message {
 }
 
 // ------------ CONSTs
-// const PROXY_CERT  = read('D:/2/Chrome 浏览器代理配置教程 沈鸿飞/Whistle-SHF.crt')
-
 export const LOCALHOST_IPS = new Set(['127.0.0.1', '::ffff:127.0.0.1', '::1'])
 export const ROUTER_IP     = '192.168.1.1'
 export const PHONE_IP      = '192.168.1.113'
@@ -81,7 +79,6 @@ export const server = {
         
         app.use(this.entry.bind(this))
         
-        // 使用 br 后压缩速度显著降低，需要 16s 才能压缩 sources
         app.use(KoaCompress({
             br: {
                 // https://nodejs.org/api/zlib.html#zlib_class_brotlioptions
@@ -172,7 +169,7 @@ export const server = {
         }
         
         
-        // ------------ 日志
+        // ------------ log
         this.logger(ctx)
         
         await next?.()
@@ -237,7 +234,7 @@ export const server = {
         
         let s = ''
         
-        // --- 时间
+        // --- time
         s += new Date().to_time_str() + '  '
         
         
