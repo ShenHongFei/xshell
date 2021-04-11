@@ -144,8 +144,8 @@ export async function fdelete (fp: string, { print = true }: { print?: boolean }
 }
 
 
-/** 复制文件  
-    - dst: 目标文件路径或文件夹
+/** copy file  
+    - dst: target file path or directory
 */
 export async function fcopy (src: string, dst: string, { print = true }: { print?: boolean } = { }) {
     if (!path.isAbsolute(dst))
@@ -203,7 +203,7 @@ export async function fmkdir (fp: string, options: fs.MakeDirectoryOptions & { p
 }
 
 
-/** - link: 可以是文件路径或文件夹 */
+/** - link: can be file path or directory path */
 export async function flink (
     fp_real: string, 
     fp_link: string, 
@@ -274,7 +274,7 @@ export async function fwatch (fp: string, onchange: (event: string, filename: st
         await onchange('change', fp)
     
     const debounced_onchange = debounce((event, filename) => {
-        console.log(`文件修改 (${event}): ${filename}`)
+        console.log(`file changed (${event}): ${filename}`)
         onchange(event, path.normalize(filename))
     }, 500, { leading: false, trailing: true })
     const watcher = watch(fp, debounced_onchange)
