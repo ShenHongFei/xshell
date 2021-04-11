@@ -372,11 +372,11 @@ export function to_curl (url: string | URL, { queries, headers, method, body, js
 
 
 // ------------------------------------ RPC Client
-/** POST JSON to http://127.0.0.1/api/rpc */
+/** POST JSON to http://127.0.0.1:8421/api/rpc */
 export async function rpc (
     func: string, 
     args?: any[], 
-    { url = 'http://127.0.0.1/api/rpc', async: _async = false, ignore = false }: { url?: string, async?: boolean, ignore?: boolean } = { }
+    { url = 'http://127.0.0.1:8421/api/rpc', async: _async = false, ignore = false }: { url?: string, async?: boolean, ignore?: boolean } = { }
 ) {
     if (!func) {
         console.error('RPC Client Error: NO FUNC')
@@ -395,9 +395,9 @@ export async function rpc (
 
 export function rpc_curl (func: string, args: any[]) {
     const cmd = args.find( arg => typeof arg === 'object') ?
-            to_curl('http://127.0.0.1/repl/rpc', { body: { func, args } })
+            to_curl('http://127.0.0.1:8421/api/rpc', { body: { func, args } })
         :
-            to_curl('http://127.0.0.1/repl/rpc', { queries: { func, args } })
+            to_curl('http://127.0.0.1:8421/api/rpc', { queries: { func, args } })
     return cmd
 }
 

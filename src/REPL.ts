@@ -462,14 +462,6 @@ export async function load_tsconfig () {
 
 
 export async function eval_ts (code: string) {
-    const matches = code.match((global as any).Project.PATTERN)
-    if (matches) {
-        const project_id = matches[0].slice(0, -1)
-        if (!(project_id in global))
-            global[project_id] = await ((global as any).Project.connect(project_id))
-    }
-    
-    
     try {
         const js = await compile_ts({ code })
         global.__ = await nvm.runInThisContext(js, 'REPL.ts')
