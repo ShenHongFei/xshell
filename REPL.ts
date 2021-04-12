@@ -21,6 +21,7 @@ import type {
 import type { Context } from 'koa'
 
 
+import './Prototype'
 import { log_section, log_module_loaded, log_line, delay, inspect } from './Utils'
 import { fread, fwrite, fwatchers } from './File'
 

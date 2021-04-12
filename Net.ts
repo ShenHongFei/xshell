@@ -19,6 +19,7 @@ declare module 'tough-cookie' {
 }
 
 
+import './Prototype'
 import type { Encoding } from './File'
 import { inspect } from './Utils'
 

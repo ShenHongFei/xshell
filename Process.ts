@@ -13,7 +13,7 @@ import { Encoding } from './File'
 import { inspect } from './Utils'
 
 
-export const EXE_NODE = 'node'
+export const EXE_NODE = process.execPath.to_slash()
 
 // ------------------------------------ Start & Call
 interface StartOptions {
