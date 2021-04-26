@@ -501,15 +501,15 @@ export async function start_repl () {
     // require('ts-node/register')
     
     
-    log_module_loaded('Prototype')
+    log_module_loaded('prototype')
     
-    log_module_loaded('Utils')
+    log_module_loaded('utils')
     
-    log_module_loaded('File')
+    log_module_loaded('file')
     
-    log_module_loaded('Process')
+    log_module_loaded('process')
     
-    log_module_loaded('Net')
+    log_module_loaded('net')
     
     // --- prevent from exiting
     process.on('uncaughtException', error => { console.error(error) })
