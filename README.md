@@ -24,3 +24,7 @@ code --install-extension shenhongfei.xshell
 ```
 - or: search `xshell` in vscode extension sidebar and click install
 - or: goto https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell
+
+
+## Development
+change "main" field in package.json before release extension.

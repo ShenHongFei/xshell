@@ -7,14 +7,14 @@
         "repl",
         "interactive programming"
     ],
-    "version": "0.0.3",
+    "version": "0.0.4",
     "type": "commonjs",
-    "main": "./Extension.js",
+    "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js"
     },
     "engines": {
-        "node": ">=15.14.0",
+        "node": ">=16.0.0",
         "vscode": ">=1.55.0"
     },
     "scripts": {
