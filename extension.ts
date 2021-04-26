@@ -1,8 +1,8 @@
 import { window, commands, Range, Position } from 'vscode'
 import type { ExtensionContext } from 'vscode'
 
-import './Prototype'
-import { rpc } from './Net'
+import './prototype'
+import { rpc } from './net'
 
 
 const my_commands = [

@@ -29,8 +29,8 @@ declare module 'koa' {
 }
 
 // --- My Lib
-import { request as _request } from './Net'
-import { stream_to_buffer, delay, log_section, inspect } from './Utils'
+import { request as _request } from './net'
+import { stream_to_buffer, delay, log_section, inspect } from './utils'
 
 
 declare module 'http' {

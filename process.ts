@@ -8,9 +8,9 @@ import type { WritableStreamBufferOptions } from 'stream-buffers'
 import iconv from 'iconv-lite'
 
 
-import './Prototype'
-import { Encoding } from './File'
-import { inspect } from './Utils'
+import './prototype'
+import { Encoding } from './file'
+import { inspect } from './utils'
 
 
 export const EXE_NODE = process.execPath.to_slash()

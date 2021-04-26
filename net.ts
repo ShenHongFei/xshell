@@ -19,9 +19,9 @@ declare module 'tough-cookie' {
 }
 
 
-import './Prototype'
-import type { Encoding } from './File'
-import { inspect } from './Utils'
+import './prototype'
+import type { Encoding } from './file'
+import { inspect } from './utils'
 
 export enum MyProxy {
     HTTP1080 = 'http://127.0.0.1:1080',

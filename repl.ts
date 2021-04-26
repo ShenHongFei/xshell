@@ -21,9 +21,9 @@ import type {
 import type { Context } from 'koa'
 
 
-import './Prototype'
-import { log_section, log_module_loaded, log_line, delay, inspect } from './Utils'
-import { fread, fwrite, fwatchers } from './File'
+import './prototype'
+import { log_section, log_module_loaded, log_line, delay, inspect } from './utils'
+import { fread, fwrite, fwatchers } from './file'
 
 
 declare global {
@@ -45,7 +45,7 @@ declare global {
             
             __: any
             
-            server:   import('./Server').Server
+            server:   import('./server').Server
             
             repl_router (ctx: Context): Promise<boolean>
         }
@@ -531,7 +531,7 @@ export async function start_repl () {
         (async () => {
             // --- HTTP Server
             log_section('HTTP Server is initializing', { color: 'green', timestamp: true })
-            global.server = (await import('./Server')).default
+            global.server = (await import('./server')).default
             await global.server.start()
             log_section('HTTP Server initialized', { color: 'green', timestamp: true })
         })(),
@@ -588,12 +588,12 @@ export async function pollute_global () {
         
         import('qs').then( ({ default: _default }) => { global['qs'] = _default } ),
         
-        import('./Prototype'           ).then( _exports => { Object.assign(global, _exports) }),
-        import('./Utils'               ).then( _exports => { Object.assign(global, _exports) }),
-        import('./Process'             ).then( _exports => { Object.assign(global, _exports) }),
-        import('./File'                ).then( _exports => { Object.assign(global, _exports) }),
-        import('./Net'                 ).then( _exports => { Object.assign(global, _exports) }),
-        import('./REPL'                ).then( _exports => { Object.assign(global, _exports) }),
+        import('./prototype'           ).then( _exports => { Object.assign(global, _exports) }),
+        import('./utils'               ).then( _exports => { Object.assign(global, _exports) }),
+        import('./process'             ).then( _exports => { Object.assign(global, _exports) }),
+        import('./file'                ).then( _exports => { Object.assign(global, _exports) }),
+        import('./net'                 ).then( _exports => { Object.assign(global, _exports) }),
+        import('./repl'                ).then( _exports => { Object.assign(global, _exports) }),
     ])
     
     log_section('all modules were loaded', { color: 'green', timestamp: true })

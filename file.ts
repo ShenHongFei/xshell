@@ -11,8 +11,8 @@ import fse from 'fs-extra'
 import trash from 'trash'
 
 
-import { to_json } from './Prototype'
-import { dedent } from './Utils'
+import { to_json } from './prototype'
+import { dedent } from './utils'
 
 
 export type Encoding = 'UTF-8' | 'GB18030' | 'Shift_JIS' | 'BINARY'

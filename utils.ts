@@ -5,7 +5,7 @@ import util from 'util'
 import omit from 'lodash/omit'
 import sort_by from 'lodash/sortBy'
 
-import { colors } from './Prototype'
+import { colors } from './prototype'
 
 
 export function assert (shoud_be_true_expr: any): never | void {
