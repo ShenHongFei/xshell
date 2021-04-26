@@ -9,7 +9,7 @@
         "isolatedModules": true,
         
         // --- Build
-        "target": "ES2018",
+        "target": "ES2019",
         "allowJs": false,
         "checkJs": false,
         "pretty": true,
