@@ -9,7 +9,7 @@
     ],
     "version": "0.0.5",
     "type": "commonjs",
-    "main": "./extension.js",
+    "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js"
     },
