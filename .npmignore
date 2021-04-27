@@ -12,3 +12,4 @@ node_modules/
 /xshell.ico
 /desktop.ini
 /.npmrc
+/package-lock.json
