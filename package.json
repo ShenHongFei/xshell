@@ -1,5 +1,10 @@
 {
     "name": "xshell",
+    "version": "0.0.5",
+    "main": "./index.js",
+    "bin": {
+        "xshell": "./xshell.js"
+    },
     "description": "xshell is a shell designed to provide a brand new human-computer interaction experience.",
     "keywords": [
         "shell",
@@ -7,12 +12,7 @@
         "repl",
         "interactive programming"
     ],
-    "version": "0.0.5",
     "type": "commonjs",
-    "main": "./index.js",
-    "bin": {
-        "xshell": "./xshell.js"
-    },
     "engines": {
         "node": ">=16.0.0",
         "vscode": ">=1.55.0"
