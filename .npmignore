@@ -13,3 +13,4 @@ node_modules/
 /desktop.ini
 /.npmrc
 /package-lock.json
+/tsconfig.json
