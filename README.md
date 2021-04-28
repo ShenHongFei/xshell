@@ -29,7 +29,7 @@ npm install xshell
 ```shell
 npx xshell
 
-# or directly call xshell
+# or call xshell directly
 node ./node_modules/.bin/xshell
 
 # or add `"xshell": "xshell",` in package.json scripts field, and
@@ -49,6 +49,8 @@ import { request } from 'xshell'
 
 // start REPL
 await request('https://shenhongfei.com')
+
+// select the above line and press Ctrl + Enter, then you can inspect the result in xshell.
 ```
 
 ## Development
