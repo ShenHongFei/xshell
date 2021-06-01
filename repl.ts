@@ -50,7 +50,7 @@ declare global {
     }
 }
 
-global.ROOT = __dirname.to_slash()
+global.ROOT = `${__dirname}/`.to_slash()
 global.WIDTH = 240
 
 
@@ -457,6 +457,7 @@ export async function load_tsconfig () {
             ...compilerOptions,
             
             module: 'CommonJS',
+            incremental: false,
         }
     }
     tsconfig_commonjs_repl = {
@@ -565,7 +566,7 @@ export async function stop () {
 
 export async function exit () {
     await stop()
-    await delay(1000)
+    await delay(100)
     process.exit()
 }
 
