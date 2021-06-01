@@ -204,7 +204,7 @@ export async function request (url: string | URL, {
         resolveWithFullResponse: true,
         headers: {
             'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja-JP;q=0.6,ja;q=0.5',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.146 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
             ... json ? { 'content-type': 'application/json' } : { }, 
             ... cookies ? { cookie: Object.entries(cookies).map( ([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('; ') } : { },
             ... headers
@@ -228,7 +228,7 @@ export async function request (url: string | URL, {
             resp = await request_retry(retries, options)
         } else
             resp = await _request(options)
-        if (![200, 201, 204, 301, 302].includes(resp.statusCode))
+        if (!(200 <= resp.statusCode && resp.statusCode <= 299))
             throw new StatusCodeError(resp.statusCode, resp.body, options, resp)
         
     } catch (error) {
@@ -353,7 +353,7 @@ export function to_curl (url: string | URL, { queries, headers, method, body, js
     url = url.toString()
     
     if (!url.startsWith('http'))
-        url = 'http://' + url
+        url = `http://${url}`
     
     return (exe ? 'curl.exe' : 'curl') + 
         ' ' + ( url + (queries ? '?' : '') + qs.stringify(queries) ).quote() +

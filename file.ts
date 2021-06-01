@@ -3,12 +3,14 @@ import type fs from 'fs'
 
 import path from 'upath'
 import iconv from 'iconv-lite'
-import is_regx from 'lodash/isRegExp'
-import is_str  from 'lodash/isString'
-import debounce from 'lodash/debounce'
 import { readdirAsync } from 'readdir-enhanced'
 import fse from 'fs-extra'
 import trash from 'trash'
+import rimraf from 'rimraf'
+
+import is_regx from 'lodash/isRegExp'
+import is_str  from 'lodash/isString'
+import debounce from 'lodash/debounce'
 
 
 import { to_json } from './prototype'
@@ -132,10 +134,27 @@ export async function flist (dirp: string, {
 }
 
 
-export async function fdelete (fp: string, { print = true }: { print?: boolean } = { }) {
-    if (fp.is_dir && fp.length > 5) {
-        console.log(( 'delete directory: ' + fp ).red)
-        await trash(fp, { glob: false })
+/** delete file or directory  
+    - fp: path
+    - options?:
+        - print?: `true` (effective only delete single file)
+        - fast?: `false` use rimraf to delete quickly
+*/
+export async function fdelete (fp: string, { print = true, fast = false }: { print?: boolean, fast?: boolean } = { }) {
+    if (fp.length < 6) throw new Error(`${fp} too short`)
+    if (fp.is_dir) {
+        console.log(`delete directory: ${fp}`.red)
+        if (fast)
+            await new Promise<void>((resolve, reject) => {
+                rimraf(fp, { glob: false, disableGlob: true }, error => {
+                    if (error)
+                        reject(error)
+                    else
+                        resolve()
+                })
+            })
+        else
+            await trash(fp, { glob: false })
     } else {
         if (print)
             console.log('delete:', fp)
@@ -288,5 +307,29 @@ export async function freplace (fp: string, pattern: string | RegExp, replacemen
     let text = await fread(fp)
     text = text.replaceAll(pattern, replacement)
     await fwrite(fp, text)
+}
+
+/** convert file encoding to UTF-8
+    - dryrun?: `true`
+    - encoding?: `'AUTO'`
+*/
+export async function f2utf8 (fsrc: string, {
+    dryrun = true,
+    encoding = 'AUTO',
+}: {
+    dryrun?: boolean
+    encoding?: Encoding | 'AUTO'
+} = { }) {
+    const text = await fread(fsrc, { encoding })
+    if (dryrun) {
+        console.log(text.slice(0, 10000))
+        return
+    }
+    
+    const fp_bak = `${fsrc.fdir}${fsrc.fname.replace(/(.*?)(\.[^.]+)?$/, '$1.bak$2')}`
+    if (!fp_bak.fexists)
+        await fcopy(fsrc, fp_bak)
+    
+    await fwrite(fsrc, text)
 }
 

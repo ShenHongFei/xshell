@@ -16,9 +16,8 @@
         "newLine": "lf",
         "lib": ["ESNext", "DOM"],
         "importHelpers": true,
-        // "watch": false
-        // "incremental": true,
-        // "tsBuildInfoFile": "./build/.tsbuildinfo",
+        "incremental": true,
+        "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
         
         
         // --- Emit
@@ -48,6 +47,7 @@
         "noImplicitAny": false,
         "noImplicitReturns": false,
         "noImplicitThis": true,
+        "noImplicitOverride": true,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "skipLibCheck": true,

@@ -33,9 +33,7 @@ declare global {
     
     namespace NodeJS {
         interface Global {
-            ROOT: 'D:/0/'
-            GLOBAL_NODE_MODULES: string
-            LOCAL_NODE_MODULES : string
+            ROOT: string
             
             /** `240` ConEmu 字符宽度 */
             WIDTH: number
@@ -52,16 +50,18 @@ declare global {
     }
 }
 
-global.ROOT = 'D:/0/'
-global.GLOBAL_NODE_MODULES = 'C:/Users/shf/AppData/Roaming/npm/node_modules/'
-global.LOCAL_NODE_MODULES  = `${global.ROOT}node_modules/`
+global.ROOT = __dirname.to_slash()
 global.WIDTH = 240
 
 
 // ------------ inspect options
 
 util.inspect.defaultOptions.maxArrayLength  = 40
-util.inspect.defaultOptions.maxStringLength = 10000
+try {
+    util.inspect.defaultOptions.maxStringLength = 10000
+} catch {
+    console.error('set util.inspect.defaultOptions.maxStringLength error')
+}
 util.inspect.defaultOptions.breakLength     = 240
 util.inspect.defaultOptions.colors          = true
 util.inspect.defaultOptions.compact         = false
@@ -426,7 +426,7 @@ export async function compile_ts ({
     
     code = generate_code(statements)
     
-    let { diagnostics, outputText } = ts.transpileModule(code, tsconfig_commonjs)
+    let { diagnostics, outputText } = ts.transpileModule(code, tsconfig_commonjs_repl)
     
     if (diagnostics.length) {
         console.log(diagnostics.join('\n\n\n'))
@@ -447,16 +447,26 @@ export async function compile_ts ({
 
 export let tsconfig: any
 export let tsconfig_commonjs: any
+export let tsconfig_commonjs_repl: any
 
 export async function load_tsconfig () {
     const fp = `${global.ROOT}tsconfig.json`
-    tsconfig = ts.parseConfigFileTextToJson(fp, await fread(fp, { print: false })).config
+    const { compilerOptions } = ts.parseConfigFileTextToJson(fp, await fread(fp, { print: false })).config
     tsconfig_commonjs = {
-        ...tsconfig,
         compilerOptions: {
-            ...tsconfig.compilerOptions,
+            ...compilerOptions,
+            
             module: 'CommonJS',
-            esModuleInterop: true,
+        }
+    }
+    tsconfig_commonjs_repl = {
+        compilerOptions: {
+            ...compilerOptions,
+            
+            module: 'CommonJS',
+            
+            // nvm.runInThisContext 不支持 inline source map
+            sourceMap: false,
         }
     }
 }
@@ -465,7 +475,7 @@ export async function load_tsconfig () {
 export async function eval_ts (code: string) {
     try {
         const js = await compile_ts({ code })
-        global.__ = await nvm.runInThisContext(js, 'REPL.ts')
+        global.__ = await nvm.runInThisContext(js, 'repl.ts')
         
         return global.__
     } catch (error) {

@@ -136,7 +136,10 @@ declare global {
         // --- path ops
         fdir: string
         
-        /** aaa.txt */
+        /** path.basename, e.g.  
+            - D:/0/aaa.txt -> aaa.txt
+            - D:/aaa/ -> aaa
+        */
         fname: string
         
         /** .txt */
