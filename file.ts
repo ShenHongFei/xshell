@@ -219,7 +219,7 @@ export async function frename (fp: string, fp_: string, { dir, print = true, ove
         fp = path.join(dir, fp)
         fp_ = path.join(dir, fp_)
     } else if (!path.isAbsolute(fp) || !path.isAbsolute(fp_))
-        throw new Error('fp 和 fp_ 必须是绝对路径')
+        throw new Error('fp and fp_ must be absolute path')
     
     if (print)
         console.log('rename:', fp, '→', fp_)
@@ -232,7 +232,7 @@ export async function frename (fp: string, fp_: string, { dir, print = true, ove
 
 export async function fmkdir (fpd: string, options: fs.MakeDirectoryOptions & { print?: boolean, suppress_existence?: boolean } = { }) {
     if (!path.isAbsolute(fpd))
-        throw new Error('fpd 必须是绝对路径')
+        throw new Error('fpd must be absolute path')
     
     options.print ??= true
     

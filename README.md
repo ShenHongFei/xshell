@@ -1,4 +1,5 @@
 # xshell
+[![npm version](https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen)](https://www.npmjs.com/package/xshell) [![npm downloads](https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen)](https://www.npmjs.com/package/xshell)
 
 xshell is a shell designed to provide a brand new human-computer interaction experience.
 
