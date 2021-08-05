@@ -34,6 +34,8 @@ export async function fread (fp: string, {
 ) {
     if (dir)
         fp = path.join(dir, fp)
+    else if (!path.isAbsolute(fp))
+        throw new Error('fp must be absolute path, or pass in "dir" parameter')
     
     if (print)
         console.log('read:', fp)
@@ -57,17 +59,22 @@ export async function fread (fp: string, {
 }
 
 export async function fread_lines (fp: string, options: { dir?: string, encoding?: Exclude<Encoding, 'BINARY'> | 'AUTO', print?: boolean } = { }) {
-    return (await fread(fp, options)).split_lines()
+    return (await fread(fp, options))
+        .split_lines()
 }
 
 export async function fread_json <T = any> (fp: string, options: { dir?: string, encoding?: Encoding, print?: boolean } = { }): Promise<T> {
-    return JSON.parse( await fread(fp, options) )
+    return JSON.parse(
+        await fread(fp, options)
+    )
 }
 
 
 export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', print = true }: { dir?: string, encoding?: Encoding, print?: boolean } = { }) {
     if (dir)
         fp = path.join(dir, fp)
+    else if (!path.isAbsolute(fp))
+        throw new Error('fp must be absolute path, or pass in "dir" parameter')
     
     if (print)
         console.log('write:', fp)
@@ -84,6 +91,8 @@ export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', 
 export async function fappend (fp: string, data: any, { dir, print = true }: { dir?: string, print?: boolean } = { }) {
     if (dir)
         fp = path.join(dir, fp)
+    else if (!path.isAbsolute(fp))
+        throw new Error('fp must be absolute path, or pass in "dir" parameter')
     
     if (print)
         console.log('append:', fp)
@@ -96,12 +105,14 @@ export async function fappend (fp: string, data: any, { dir, print = true }: { d
 
 
 /**
-    - deep?: `false` recursively
-    - absolute?: `false` return absolute path
-    - print?: `true`
-    - filter?: `true`  RegExp | (fp: string) => any
+    - fpd: absolute path of directory
+    - optoins?:
+        - deep?: `false` recursively
+        - absolute?: `false` return absolute path
+        - print?: `true`
+        - filter?: `true`  RegExp | (fp: string) => any
 */
-export async function flist (dirp: string, {
+export async function flist (fpd: string, {
     filter, 
     deep = false, 
     absolute = false,
@@ -112,8 +123,11 @@ export async function flist (dirp: string, {
     absolute?: boolean
     print?: boolean
 } = { }) {
-    let fps = await readdirAsync(dirp, {
-        ...(absolute ? { basePath: dirp } : { }),
+    if (!path.isAbsolute(fpd))
+        throw new Error('fpd must be absolute path')
+    
+    let fps = await readdirAsync(fpd, {
+        ...(absolute ? { basePath: fpd } : { }),
         deep,
         stats: false,
     })
@@ -142,6 +156,8 @@ export async function flist (dirp: string, {
 */
 export async function fdelete (fp: string, { print = true, fast = false }: { print?: boolean, fast?: boolean } = { }) {
     if (fp.length < 6) throw new Error(`${fp} too short`)
+    if (!path.isAbsolute(fp))
+        throw new Error('fpd must be absolute path')
     if (fp.is_dir) {
         console.log(`delete directory: ${fp}`.red)
         if (fast)
@@ -163,23 +179,30 @@ export async function fdelete (fp: string, { print = true, fast = false }: { pri
 }
 
 
-/** copy file  
-    - dst: target file path or directory
+/** copy file or direcotry
+    - src: src file/directory absolute path
+    - dst: dst file/directory absolute path
+    @example
+    fcopy('D:/temp/Camera/', 'D:/Camera/')
 */
 export async function fcopy (src: string, dst: string, { print = true }: { print?: boolean } = { }) {
-    if (!path.isAbsolute(dst))
-        dst = `${src.fdir}${dst.fname}`
-    if (dst.is_dir && dst.fexists)
-        dst += src.fname
+    if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
+    if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
     if (print)
         console.log(`copy: ${src} → ${dst}`)
     await fse.copy(src, dst)
 }
 
 
+/** move file or direcotry
+    - src: src file/directory absolute path
+    - dst: dst file/directory absolute path
+    @example
+    fmove('D:/temp/Camera/', 'D:/Camera/')
+*/
 export async function fmove (src: string, dst: string, { overwrite = false, print = true }: { overwrite?: boolean, print?: boolean } = { }) {
-    if (!src.is_dir && dst.fexists && dst.is_dir)
-        dst = path.join(dst, src.fname)
+    if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
+    if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
     if (print)
         console.log(`move: ${src} → ${dst}`)
     await fse.move(src, dst, { overwrite })
@@ -195,30 +218,34 @@ export async function frename (fp: string, fp_: string, { dir, print = true, ove
     if (dir) {
         fp = path.join(dir, fp)
         fp_ = path.join(dir, fp_)
-    }
+    } else if (!path.isAbsolute(fp) || !path.isAbsolute(fp_))
+        throw new Error('fp 和 fp_ 必须是绝对路径')
     
     if (print)
         console.log('rename:', fp, '→', fp_)
     
-    if (!overwrite && fp_.fexists) throw new Error('file already exists：' + fp_)
+    if (!overwrite && fp_.fexists) throw new Error(`file already exists：${fp_}`)
     
     await fsp.rename(fp, fp_)
 }
 
 
-export async function fmkdir (fp: string, options: fs.MakeDirectoryOptions & { print?: boolean, suppress_existence?: boolean } = { }) {
-    options.print ?? true
+export async function fmkdir (fpd: string, options: fs.MakeDirectoryOptions & { print?: boolean, suppress_existence?: boolean } = { }) {
+    if (!path.isAbsolute(fpd))
+        throw new Error('fpd 必须是绝对路径')
     
-    if (fp.fexists)
-        if (fp.is_dir) {
+    options.print ??= true
+    
+    if (fpd.fexists)
+        if (fpd.is_dir) {
             if (options.print && !options.suppress_existence)
-                console.log('directory already exists:', fp)
+                console.log('directory already exists:', fpd)
             return
-        } else throw new Error('file with same name already exists, cannot create directory: ' + fp)
+        } else throw new Error(`file with same name already exists, cannot create directory: ${fpd}`)
     else if (options.print)
-        console.log('create new directory:', fp)
+        console.log('create new directory:', fpd)
     
-    await fsp.mkdir(fp, { recursive: true })
+    await fsp.mkdir(fpd, { recursive: true })
 }
 
 
@@ -233,6 +260,9 @@ export async function flink (
         junction?: boolean
         print?: boolean
 } = { }) {
+    if (!path.isAbsolute(fp_real) || !path.isAbsolute(fp_link))
+        throw new Error('fpd must be absolute path')
+    
     if (fp_link.fexists)
         if (fp_link.is_dir)
             fp_link = path.join(fp_link, fp_real.fname)
@@ -285,6 +315,8 @@ export let fwatchers: Record<string, fs.FSWatcher> = { }
     
 */
 export async function fwatch (fp: string, onchange: (event: string, filename: string) => any, { exec = true }: { exec?: boolean } = { }) {
+    if (!path.isAbsolute(fp)) throw new Error('fp must be absolute path')
+    
     const _watcher = fwatchers[fp]
     if (_watcher)
         _watcher.close()
@@ -304,32 +336,36 @@ export async function fwatch (fp: string, onchange: (event: string, filename: st
 
 /** open a file and replace certain pattern */
 export async function freplace (fp: string, pattern: string | RegExp, replacement: string) {
-    let text = await fread(fp)
-    text = text.replaceAll(pattern, replacement)
-    await fwrite(fp, text)
+    await fwrite(
+        fp,
+        (await fread(fp))
+            .replaceAll(pattern, replacement)
+    )
 }
 
 /** convert file encoding to UTF-8
-    - dryrun?: `true`
-    - encoding?: `'AUTO'`
+    - fp: file absolute path
+    - options?:
+        - dryrun?: `true`
+        - encoding?: `'AUTO'`
 */
-export async function f2utf8 (fsrc: string, {
+export async function f2utf8 (fp: string, {
     dryrun = true,
     encoding = 'AUTO',
 }: {
     dryrun?: boolean
     encoding?: Encoding | 'AUTO'
 } = { }) {
-    const text = await fread(fsrc, { encoding })
+    const text = await fread(fp, { encoding })
     if (dryrun) {
         console.log(text.slice(0, 10000))
         return
     }
     
-    const fp_bak = `${fsrc.fdir}${fsrc.fname.replace(/(.*?)(\.[^.]+)?$/, '$1.bak$2')}`
+    const fp_bak = `${fp.fdir}${fp.fname.replace(/(.*?)(\.[^.]+)?$/, '$1.bak$2')}`
     if (!fp_bak.fexists)
-        await fcopy(fsrc, fp_bak)
+        await fcopy(fp, fp_bak)
     
-    await fwrite(fsrc, text)
+    await fwrite(fp, text)
 }
 

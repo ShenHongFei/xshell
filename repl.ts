@@ -27,27 +27,17 @@ import { fread, fwrite, fwatchers } from './file'
 
 
 declare global {
-    let __: any
+    var __: any
     
-    let server: NodeJS.Global['server']
+    var ROOT: string
     
-    namespace NodeJS {
-        interface Global {
-            ROOT: string
-            
-            /** `240` ConEmu 字符宽度 */
-            WIDTH: number
-            
-            /** REPL 启动时间 */
-            started_at: Date
-            
-            __: any
-            
-            server:   import('./server').Server
-            
-            repl_router (ctx: Context): Promise<boolean>
-        }
-    }
+    var WIDTH: number
+    
+    var started_at: Date
+    
+    var server: import('./server').Server
+    
+    var repl_router: (ctx: Context) => Promise<boolean>
 }
 
 global.ROOT = `${__dirname}/`.to_slash()
@@ -91,7 +81,6 @@ const {
     isImportDeclaration: is_import_decl,
     isAwaitExpression: is_await_expr,
     isExpressionStatement: is_expr_stmt,
-    isExportAssignment: is_export_assignment,
     isVariableStatement: is_var_stmt,
     isNamespaceImport: is_namespace_import,
     isClassDeclaration: is_class_decl,
@@ -147,7 +136,7 @@ export function parse_code (code: string) {
 export function generate_code (stmts: Statement[]) {
     return create_printer({ omitTrailingSemicolon: true, removeComments: false, newLine: ts.NewLineKind.LineFeed })
         .printFile(
-            ts.updateSourceFileNode(
+            factory.updateSourceFile(
                 ts.createSourceFile('output.ts', '', ts.ScriptTarget.ESNext),
                 stmts
             )
@@ -227,16 +216,18 @@ function trans_import_2_require (import_decl: Statement) {
 
 /** export function foo () { } */
 function trans_export_stmt (stmt: Statement) {
-    if (is_export_assignment(stmt))
-        return factory.createExpressionStatement( stmt.expression)
+    if (ts.isExportAssignment(stmt))
+        return factory.createExpressionStatement(stmt.expression)
     
-    function isExportModifier (modifier: Modifier) {
+    function is_export_modifier (modifier: Modifier) {
         return modifier.flags & ModifierFlags.Export || modifier.flags & ModifierFlags.ExportDefault || modifier.kind === SyntaxKind.ExportKeyword
     }
     
-    if (stmt.modifiers?.some( modifier => isExportModifier(modifier) )) {
+    if (stmt.modifiers?.some( modifier => is_export_modifier(modifier) )) {
         // @ts-ignore
-        stmt.modifiers = factory.createNodeArray<Modifier>(stmt.modifiers.filter( modifier => !isExportModifier(modifier) ))
+        stmt.modifiers = factory.createNodeArray<Modifier>(
+            stmt.modifiers.filter( modifier => !is_export_modifier(modifier) )
+        )
         return stmt
     }
     
@@ -274,12 +265,19 @@ function trans_variable_decl_2_var (var_decl: Statement) {
 
 function trans_class_decl_2_expr (class_decl: Statement) {
     if (!is_class_decl(class_decl)) return class_decl
-    if (class_decl.modifiers)
-        // @ts-ignore
-        class_decl.modifiers = factory.createNodeArray<Modifier>( class_decl.modifiers.filter( modifier => !(modifier.kind === SyntaxKind.ExportKeyword)))
-    return factory.createVariableStatement([ ], factory.createVariableDeclarationList( [
-        factory.createVariableDeclaration(class_decl.name, undefined, undefined, factory.createClassExpression(undefined, undefined, class_decl.name, undefined, undefined, class_decl.members))
-    ]))
+    
+    // stmts like 'export class C { }' were moved 'export modifier' in 'trans_export_stmt'
+    
+    return factory.createVariableStatement(
+        [ ],
+        factory.createVariableDeclarationList([
+            factory.createVariableDeclaration(
+                class_decl.name, 
+                undefined, 
+                undefined, 
+                factory.createClassExpression(undefined, undefined, class_decl.name, undefined, undefined, class_decl.members)
+            )
+        ]))
 }
 
 
@@ -288,12 +286,27 @@ function get_expr_of_stmt (statement: Statement): ExpressionStatement | Statemen
         return statement
     
     if (is_var_stmt(statement)) {
-        const declarations = statement.declarationList.declarations
+        const { declarations } = statement.declarationList
         return factory.createExpressionStatement(
             declarations.length === 1 ?
-                declarations[0].name as Identifier
+                (() => {
+                    const { name } = declarations[0]
+                    if (is_identifier(name))  // const a = c
+                        return name
+                    else  // const { a, b } = c
+                        return factory.createObjectLiteralExpression(
+                            name.elements
+                                .filter(({ name }: BindingElement) => 
+                                    is_identifier(name))
+                                .map(({ name }: BindingElement) => 
+                                    factory.createShorthandPropertyAssignment(name as Identifier))
+                        )
+                })()
             :
-                factory.createObjectLiteralExpression( declarations.map( variableDeclaration => factory.createShorthandPropertyAssignment(variableDeclaration.name as Identifier) ), true)
+                factory.createObjectLiteralExpression(
+                    declarations.map( var_decl => 
+                        factory.createShorthandPropertyAssignment(var_decl.name as Identifier)),
+                    true)
         )
     }
     
@@ -402,7 +415,7 @@ export async function compile_ts ({
     code?: string
     print?: boolean
     save?: boolean
-} = { } ): Promise<string> {
+} = { }): Promise<string> {
     if (!code && fp)
         code = await fread(fp)
     
@@ -417,16 +430,16 @@ export async function compile_ts ({
     statements = statements.map(trans_return_2_expr)
     
     if (statements.length) {
-        const last_stmt  = statements[ statements.length - 1 ]
+        const last_stmt  = statements[statements.length - 1]
         const last_expr = get_expr_of_stmt(last_stmt)
         if (last_expr !== last_stmt)
-            statements = [ ...statements, last_expr]
+            statements = [...statements, last_expr]
     }
     
     
     code = generate_code(statements)
     
-    let { diagnostics, outputText } = ts.transpileModule(code, tsconfig_commonjs_repl)
+    let { diagnostics, outputText: output_text } = ts.transpileModule(code, { compilerOptions: ts_options_commonjs_repl })
     
     if (diagnostics.length) {
         console.log(diagnostics.join('\n\n\n'))
@@ -434,41 +447,47 @@ export async function compile_ts ({
     }
     
     if (print) {
-        console.log(outputText)
+        console.log(output_text)
         log_line()
     }
     
     if (fp && save)
-        await fwrite(fp.replace(/\.ts(x?)$/, '.js$1'), outputText)
+        await fwrite(fp.replace(/\.ts(x?)$/, '.js$1'), output_text)
     
-    return outputText
+    return output_text
 }
 
 
-export let tsconfig: any
-export let tsconfig_commonjs: any
-export let tsconfig_commonjs_repl: any
+/** tsconfig.compilerOptions */
+export let ts_options: any
+export let ts_options_commonjs: any
+export let ts_options_commonjs_repl: any
 
 export async function load_tsconfig () {
     const fp = `${global.ROOT}tsconfig.json`
-    const { compilerOptions } = ts.parseConfigFileTextToJson(fp, await fread(fp, { print: false })).config
-    tsconfig_commonjs = {
-        compilerOptions: {
-            ...compilerOptions,
-            
-            module: 'CommonJS',
-            incremental: false,
-        }
+    ;({ config: { compilerOptions: ts_options } } = ts.parseConfigFileTextToJson(
+        fp, 
+        await fread(fp, { print: false })
+    ))
+    
+    ts_options_commonjs = {
+        ...ts_options,
+        
+        module: 'CommonJS',
+        incremental: false,
+        
+        // 决定编译到 CommonJS 的模块 require 方式
+        esModuleInterop: true,
     }
-    tsconfig_commonjs_repl = {
-        compilerOptions: {
-            ...compilerOptions,
-            
-            module: 'CommonJS',
-            
-            // nvm.runInThisContext 不支持 inline source map
-            sourceMap: false,
-        }
+    
+    ts_options_commonjs_repl = {
+        ...ts_options,
+        
+        module: 'CommonJS',
+        esModuleInterop: true,
+        
+        // nvm.runInThisContext 不支持 inline source map
+        sourceMap: false,
     }
 }
 
@@ -541,10 +560,10 @@ export async function start_repl () {
     await Promise.all([
         (async () => {
             // --- HTTP Server
-            log_section('HTTP Server is initializing', { color: 'green', timestamp: true })
+            log_section('server is initializing', { color: 'green', timestamp: true })
             global.server = (await import('./server')).default
             await global.server.start()
-            log_section('HTTP Server initialized', { color: 'green', timestamp: true })
+            log_section('server initialized', { color: 'green', timestamp: true })
         })(),
         
         pollute_global(),

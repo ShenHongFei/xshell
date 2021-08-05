@@ -29,7 +29,7 @@
         // --- Source Maps
         "sourceMap": true,
         "inlineSourceMap": false,
-        "inlineSources": false,
+        "inlineSources": true,
         
         // --- Features
         "experimentalDecorators": true,

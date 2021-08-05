@@ -18,7 +18,15 @@ declare global {
         
         to_bool (this: string): boolean
         
-        /** ```ts
+        /** string pattern replacement
+            - pattern: pattern of matched string part
+            - pattern_: pattern of target string part
+            - preservations?: `''` preserved regexp characters
+            - flags?: `''` regexp flags
+            - transformer?: `(name, matched) => matched || ''` placeholder transformer
+            - pattern_placeholder?: `/\{.*?\}/g`
+            
+            ```ts
             'E:/ACGN/海贼王/[Skytree][海贼王][One_Piece][893][GB_BIG5_JP][X264_AAC][1080P][CRRIP][天空树双语字幕组].mkv'.reformat(  
                 '{dirp}/[Skytree][海贼王][{ en_name: \\w+ }][{ episode: \\d+ }][GB_BIG5_JP][{encoding}_AAC][1080P][CRRIP][天空树双语字幕组].{format}',  
                 'G:/ACGN/海贼王/{episode} {encoding}.{format}',  
@@ -28,21 +36,17 @@ declare global {
             )
             ```
          */
-        reformat ( this: string,
+        refmt ( this: string,
             pattern: string,
             
             pattern_: string,
             
-            /** `''` preserved regexp characters */
             preservations?: string,
             
-            /** `''` regexp flags */
             flags?: string,
             
-            /** `(name, matched) => matched || ''` placeholder transformer */
             transformer?: (name: string, value: string, placeholders: { [name: string]: string }) => string,
             
-            /** `/\{.*?\}/g` */
             pattern_placeholder?: RegExp
             
         ): string
@@ -209,6 +213,7 @@ declare global {
 import fs from 'fs'
 
 import path from 'upath'
+// @ts-ignore
 import byte_size from 'byte-size'
 
 import EmojiRegex from 'emoji-regex'
@@ -353,7 +358,7 @@ Object.defineProperties( String.prototype, {
             return this.length && this !== '0' && this.toLowerCase() !== 'false'
         },
         
-        reformat (this: string, 
+        refmt (this: string, 
             pattern : string,
             pattern_: string,
             preservations: string = '',
@@ -392,7 +397,12 @@ Object.defineProperties( String.prototype, {
             
             add_part(last_end)
             
-            const pattern_regx = new RegExp( '^' + regx_parts.join('') + '$', flags )
+            // modify last (.*?) to greedy in order to satisfy the situation of .{suffix}
+            regx_parts = regx_parts.filter( part => part)
+            if (regx_parts.last === '(.*?)')
+                regx_parts[regx_parts.length - 1] = '(.*)'
+            
+            const pattern_regx = new RegExp(regx_parts.join(''), flags )
             
             
             // --- match original string based on pattern_regx, and get result to build placeholders dict
@@ -467,7 +477,7 @@ Object.defineProperties( String.prototype, {
             // convert last (.*?) to greedy, to make .{suffix} work
             regx_parts = regx_parts.filter( part => part)
             if (regx_parts.last === '(.*?)')
-                regx_parts[ regx_parts.length - 1 ] = '(.*)'
+                regx_parts[regx_parts.length - 1] = '(.*)'
             
             const pattern_regx = new RegExp(regx_parts.join(''), flags)
             

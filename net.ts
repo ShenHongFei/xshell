@@ -124,9 +124,6 @@ export interface RequestOptions {
     gzip?: boolean
     
     cookies?: Record<string, string>
-    
-    /** `true` */
-    print_error?: boolean
 }
 
 export interface RequestRawOptions extends RequestOptions {
@@ -205,7 +202,7 @@ export async function request (url: string | URL, {
         headers: {
             'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja-JP;q=0.6,ja;q=0.5',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
-            ... json ? { 'content-type': 'application/json' } : { }, 
+            ... json && !form ? { 'content-type': 'application/json' } : { }, 
             ... cookies ? { cookie: Object.entries(cookies).map( ([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('; ') } : { },
             ... headers
         },
