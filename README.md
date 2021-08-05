@@ -1,7 +1,26 @@
 # xshell
-[![npm version](https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen)](https://www.npmjs.com/package/xshell) [![npm downloads](https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen)](https://www.npmjs.com/package/xshell)
 
-xshell is a shell designed to provide a brand new human-computer interaction experience.
+<p align='center'>
+    <img src='./xshell.png' alt='xshell' width='64'>
+</p>
+
+<h2 align='center'>
+    xshell
+</h2>
+
+<p align='center'>
+    <a href='https://www.npmjs.com/package/xshell' alt='npm version'>
+        <img src='https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen' />
+    </a>
+    <a href='https://www.npmjs.com/package/xshell' alt='npm downloads'>
+        <img src='https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen' />
+    </a>
+    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension'>
+        <img src='https://vsmarketplacebadge.apphb.com/version/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
+    </a>
+</p>
+
+### xshell is a shell designed to provide a brand new human-computer interaction experience.
 
 ![REPL.png](https://cos.shenhongfei.com/assets/xshell-repl.png)
 
