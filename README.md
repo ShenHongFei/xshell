@@ -18,6 +18,9 @@
     <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension' target='_blank'>
         <img src='https://vsmarketplacebadge.apphb.com/version/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
     </a>
+    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension' target='_blank'>
+        <img src='https://vsmarketplacebadge.apphb.com/installs/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
+    </a>
 </p>
 
 ### xshell is a shell designed to provide a brand new human-computer interaction experience.
