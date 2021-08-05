@@ -9,13 +9,13 @@
 </h2>
 
 <p align='center'>
-    <a href='https://www.npmjs.com/package/xshell' alt='npm version'>
+    <a href='https://www.npmjs.com/package/xshell' alt='npm version' target='_blank'>
         <img src='https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen' />
     </a>
-    <a href='https://www.npmjs.com/package/xshell' alt='npm downloads'>
+    <a href='https://www.npmjs.com/package/xshell' alt='npm downloads' target='_blank'>
         <img src='https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen' />
     </a>
-    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension'>
+    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension' target='_blank'>
         <img src='https://vsmarketplacebadge.apphb.com/version/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
     </a>
 </p>
