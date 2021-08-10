@@ -476,7 +476,7 @@ export async function load_tsconfig () {
         module: 'CommonJS',
         incremental: false,
         
-        // 决定编译到 CommonJS 的模块 require 方式
+        // determine CommonJS module require method
         esModuleInterop: true,
     }
     
@@ -486,7 +486,7 @@ export async function load_tsconfig () {
         module: 'CommonJS',
         esModuleInterop: true,
         
-        // nvm.runInThisContext 不支持 inline source map
+        // nvm.runInThisContext doesn't support inline source map
         sourceMap: false,
     }
 }
@@ -509,7 +509,7 @@ export async function eval_ts (code: string) {
 export async function repl_code (type: string, ...args: any[]) {
     console.log('-'.repeat(global.WIDTH))
     
-    // --- 运行代码
+    // --- run code
     global.__ = await exports['eval_' + type](...args)
     
     log_line(global.WIDTH)
@@ -523,7 +523,7 @@ export async function repl_code (type: string, ...args: any[]) {
 
 
 export async function start_repl () {
-    // ------------ 加载库
+    // ------------ load library
     log_section('xshell is booting ...', { timestamp: true })
     
     // process.env.TS_NODE_FILES = true
@@ -572,6 +572,7 @@ export async function start_repl () {
     ])
     
     log_section('xshell booted successfully', { color: 'red', timestamp: true })
+    console.log('xshell is listening at http://0.0.0.0:8421'.green)
 }
 
 

@@ -9,17 +9,17 @@
 </h2>
 
 <p align='center'>
-    <a href='https://www.npmjs.com/package/xshell' alt='npm version' target='_blank'>
-        <img src='https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen' />
+    <a href='https://www.npmjs.com/package/xshell' target='_blank'>
+        <img alt='npm version' src='https://img.shields.io/npm/v/xshell.svg?style=flat-square&color=brightgreen' />
     </a>
-    <a href='https://www.npmjs.com/package/xshell' alt='npm downloads' target='_blank'>
-        <img src='https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen' />
+    <a href='https://www.npmjs.com/package/xshell' target='_blank'>
+        <img alt='npm downloads' src='https://img.shields.io/npm/dt/xshell?style=flat-square&color=brightgreen' />
     </a>
-    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension' target='_blank'>
-        <img src='https://vsmarketplacebadge.apphb.com/version/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
+    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' target='_blank'>
+        <img alt='vscode extension version' src='https://vsmarketplacebadge.apphb.com/version/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
     </a>
-    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' alt='vscode extension' target='_blank'>
-        <img src='https://vsmarketplacebadge.apphb.com/installs/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
+    <a href='https://marketplace.visualstudio.com/items?itemName=ShenHongFei.xshell' target='_blank'>
+        <img alt='vscode extension installs' src='https://vsmarketplacebadge.apphb.com/installs/ShenHongFei.xshell.svg?style=flat-square&color=4c98cf' />
     </a>
 </p>
 

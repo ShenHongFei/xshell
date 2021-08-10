@@ -2,7 +2,7 @@ declare global {
     interface String {
         readonly width: number
         
-        // --- 工具方法
+        // --- util methods
         /** truncate string with fixed width and preserve color */
         truncate (this: string, width: number): string
         
@@ -290,7 +290,7 @@ Object.defineProperties( String.prototype, {
     }),
     
     
-    // ------------ 文本处理工具方法
+    // ------------ text processing utils
     ... to_method_property_descriptors({
         /** truncate string with fixed width and preserve color */
         truncate (this: string, width: number) {
@@ -308,7 +308,7 @@ Object.defineProperties( String.prototype, {
                     code >= 0x300 && code <= 0x36F  // Ignore combining characters
                 ) continue
                 
-                // Surrogates (codepoint 需要用两个 UTF-16 编码单位表示，因此这里跳过第二个编码单位，防止重复计算显示宽度) 
+                // Surrogates (codepoint need two UTF-16 encoding units, thus here skip the first in order to prevent repeated counting) 
                 if (code > 0xFFFF)
                     i++
                 

@@ -264,7 +264,7 @@ export async function call (exe: string, args: string[] = [], {
     - options
         - cwd?: `'D:/'`
         - env?: `process.env` overwrite/add to process.env
-        - encoding?: `'UTF-8'` 子进程输出编码
+        - encoding?: `'UTF-8'` child process output encoding
         - print?: `true` print option (with details)
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)

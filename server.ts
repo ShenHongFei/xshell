@@ -84,7 +84,7 @@ export const server = {
                 // https://nodejs.org/api/zlib.html#zlib_class_brotlioptions
                 params: {
                     [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-                    [zlib.constants.BROTLI_PARAM_QUALITY]: 6  // 默认为 11 (最大压缩)，会导致 news/get 生成的 14MB 的 JSON 压缩时长高达 24s
+                    [zlib.constants.BROTLI_PARAM_QUALITY]: 6  // default 11 (maximized compression), may lead to news/get generated 14MB JSON taking 24s
                 },
             },
             threshold: 512
@@ -194,7 +194,7 @@ export const server = {
         if (!Array.isArray(args))
             args = [args]
         
-        // ?async=1 或 ?async=0 或 ?async=false
+        // ?async=1 or ?async=0 or ?async=false
         if (typeof ignore === 'string')
             ignore = ignore.to_bool()
         
