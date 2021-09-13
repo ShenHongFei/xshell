@@ -5,11 +5,8 @@ import path from 'upath'
 import iconv from 'iconv-lite'
 import { readdirAsync } from 'readdir-enhanced'
 import fse from 'fs-extra'
-import trash from 'trash'
 import rimraf from 'rimraf'
 
-import is_regx from 'lodash/isRegExp'
-import is_str  from 'lodash/isString'
 import debounce from 'lodash/debounce'
 
 
@@ -82,7 +79,7 @@ export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', 
     if (encoding === 'GB18030')
         data = iconv.encode(data, encoding)
     
-    if (!Buffer.isBuffer(data) && !is_str(data))
+    if (!Buffer.isBuffer(data) && typeof data !== 'string')
         data = to_json(data)
     
     await fsp.writeFile(fp, data)
@@ -97,7 +94,7 @@ export async function fappend (fp: string, data: any, { dir, print = true }: { d
     if (print)
         console.log('append:', fp)
         
-    if (!Buffer.isBuffer(data) && !is_str(data))
+    if (!Buffer.isBuffer(data) && typeof data !== 'string')
         throw new Error('data is not Buffer or string')
         
     await fsp.appendFile(fp, data)
@@ -139,7 +136,7 @@ export async function flist (fpd: string, {
         return fp
     })
     
-    if (is_regx(filter))
+    if (filter instanceof RegExp)
         return fps.filter( fp => filter.test(fp))
     else if (filter)
         return fps.filter(filter)
@@ -148,7 +145,7 @@ export async function flist (fpd: string, {
 }
 
 
-/** delete file or directory  
+/** delete file or directory (use rimraf to delete directory fast)  
     - fp: path
     - options?:
         - print?: `true` (effective only delete single file)
@@ -158,19 +155,18 @@ export async function fdelete (fp: string, { print = true, fast = false }: { pri
     if (fp.length < 6) throw new Error(`${fp} too short`)
     if (!path.isAbsolute(fp))
         throw new Error('fpd must be absolute path')
+    
     if (fp.is_dir) {
-        console.log(`delete directory: ${fp}`.red)
-        if (fast)
-            await new Promise<void>((resolve, reject) => {
-                rimraf(fp, { glob: false, disableGlob: true }, error => {
-                    if (error)
-                        reject(error)
-                    else
-                        resolve()
-                })
+        if (print)
+            console.log(`delete directory: ${fp}`.red)
+        await new Promise<void>((resolve, reject) => {
+            rimraf(fp, { glob: false, disableGlob: true }, error => {
+                if (error)
+                    reject(error)
+                else
+                    resolve()
             })
-        else
-            await trash(fp, { glob: false })
+        })
     } else {
         if (print)
             console.log('delete:', fp)
@@ -183,14 +179,20 @@ export async function fdelete (fp: string, { print = true, fast = false }: { pri
     - src: src file/directory absolute path
     - dst: dst file/directory absolute path
     @example
-    fcopy('D:/temp/Camera/', 'D:/Camera/')
+    fcopy('d:/temp/camera/', 'd:/camera/')
 */
-export async function fcopy (src: string, dst: string, { print = true }: { print?: boolean } = { }) {
+export async function fcopy (src: string, dst: string, {
+    print = true,
+    overwrite = true,
+}: {
+    print?: boolean
+    overwrite?: boolean
+} = { }) {
     if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
     if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
     if (print)
         console.log(`copy: ${src} → ${dst}`)
-    await fse.copy(src, dst)
+    await fse.copy(src, dst, { overwrite, errorOnExist: true })
 }
 
 
@@ -198,9 +200,15 @@ export async function fcopy (src: string, dst: string, { print = true }: { print
     - src: src file/directory absolute path
     - dst: dst file/directory absolute path
     @example
-    fmove('D:/temp/Camera/', 'D:/Camera/')
+    fmove('d:/temp/camera/', 'd:/camera/')
 */
-export async function fmove (src: string, dst: string, { overwrite = false, print = true }: { overwrite?: boolean, print?: boolean } = { }) {
+export async function fmove (src: string, dst: string, {
+    overwrite = false,
+    print = true
+}: {
+    overwrite?: boolean
+    print?: boolean
+} = { }) {
     if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
     if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
     if (print)
@@ -286,7 +294,7 @@ export async function flink (
 export function link_shortcut (target: string, name: string, { args }: { args?: string[] } = { }) {
     const cmd = dedent`
         $wsh_shell                 = New-Object -comObject WScript.Shell
-        $shortcut                  = $wsh_shell.CreateShortcut("D:/Shortcuts/#{name}.lnk")
+        $shortcut                  = $wsh_shell.CreateShortcut("d:/links/#{name}.lnk")
         $shortcut.TargetPath       = '${target}'
         $shortcut.Arguments        = "${args || ''}"
         $shortcut.WorkingDirectory = '${target.fdir}'

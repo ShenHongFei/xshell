@@ -9,10 +9,9 @@ import { colors } from './prototype'
 
 
 export function assert (shoud_be_true_expr: any): never | void {
-    if (!shoud_be_true_expr) {
-        debugger
-        throw new Error(`Assertion Failed: ${inspect(shoud_be_true_expr)}`)
-    }
+    if (shoud_be_true_expr) return
+    debugger
+    throw new Error(`Assertion Failed: ${inspect(shoud_be_true_expr)}`)
 }
 
 

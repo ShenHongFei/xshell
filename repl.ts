@@ -492,10 +492,12 @@ export async function load_tsconfig () {
 }
 
 
+let eval_id = 0
+
 export async function eval_ts (code: string) {
     try {
         const js = await compile_ts({ code })
-        global.__ = await nvm.runInThisContext(js, 'repl.ts')
+        global.__ = await nvm.runInThisContext(js, `repl/${eval_id++}.ts`)
         
         return global.__
     } catch (error) {
@@ -614,8 +616,6 @@ export async function pollute_global () {
         import('lodash/omit'        ).then( ({ default: _default }) => { global['omit'] = _default } ),
         import('lodash/sortBy'      ).then( ({ default: _default }) => { global['sort_by'] = _default } ),
         import('lodash/groupBy'     ).then( ({ default: _default }) => { global['group_by'] = _default } ),
-        import('lodash/isRegExp'    ).then( ({ default: _default }) => { global['is_regx'] = _default } ),
-        import('lodash/isString'    ).then( ({ default: _default }) => { global['is_str'] = _default } ),
         
         import('qs').then( ({ default: _default }) => { global['qs'] = _default } ),
         

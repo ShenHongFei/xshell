@@ -27,9 +27,9 @@ declare global {
             - pattern_placeholder?: `/\{.*?\}/g`
             
             ```ts
-            'E:/ACGN/海贼王/[Skytree][海贼王][One_Piece][893][GB_BIG5_JP][X264_AAC][1080P][CRRIP][天空树双语字幕组].mkv'.reformat(  
+            'g:/acgn/海贼王/[Skytree][海贼王][One_Piece][893][GB_BIG5_JP][X264_AAC][1080P][CRRIP][天空树双语字幕组].mkv'.reformat(  
                 '{dirp}/[Skytree][海贼王][{ en_name: \\w+ }][{ episode: \\d+ }][GB_BIG5_JP][{encoding}_AAC][1080P][CRRIP][天空树双语字幕组].{format}',  
-                'G:/ACGN/海贼王/{episode} {encoding}.{format}',  
+                'g:/acgn/海贼王/{episode} {encoding}.{format}',  
                 '\\+',  
                 'i',  
                 (name, value) => name === 'episode'  ?  String(+value + 1)  :  value.toLowerCase()  
@@ -531,7 +531,10 @@ Object.defineProperties( String.prototype, {
         
         
         split_lines (this: string, delimiter: string | RegExp = /\r?\n/) {
-            return this.split(delimiter)
+            let lines = this.split(delimiter)
+            if (lines.last === '')
+                lines.pop()
+            return lines
         },
         
         
@@ -782,8 +785,8 @@ Object.defineProperties( Array.prototype, {
             )
         },
         
-        join_lines (this: string[]) {
-            return this.join('\n')
+        join_lines (this: string[], append = true) {
+            return `${this.join('\n')}${append ? '\n' : ''}`
         }
     })
 })

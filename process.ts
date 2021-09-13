@@ -17,7 +17,7 @@ export const EXE_NODE = process.execPath.to_slash()
 
 // ------------------------------------ Start & Call
 interface StartOptions {
-    /** `'D:/'` */
+    /** `'d:/'` */
     cwd?: string
     
     /** `process.env` overwrite/add to process.env */
@@ -54,7 +54,7 @@ interface StartOptions {
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
 export function start (exe: string, args: string[] = [], {
-    cwd = 'D:/',
+    cwd = 'd:/',
     
     encoding = 'UTF-8',
     
@@ -139,7 +139,7 @@ export interface CallResult<T = string> {
     - exe: .exe path or filename (full path is recommanded to skip PATH searching for better perf)
     - args: `[]` arguments list
     - options
-        - cwd?: `'D:/'`
+        - cwd?: `'d:/'`
         - env?: `process.env` overwrite/add to process.env
         - encoding?: `'UTF-8'` child output encoding
         - print?: `true` print option (with details)
@@ -262,7 +262,7 @@ export async function call (exe: string, args: string[] = [], {
     - js: .js path (relative path will resolve based on cwd)
     - args: `[]` arguments list
     - options
-        - cwd?: `'D:/'`
+        - cwd?: `'d:/'`
         - env?: `process.env` overwrite/add to process.env
         - encoding?: `'UTF-8'` child process output encoding
         - print?: `true` print option (with details)
