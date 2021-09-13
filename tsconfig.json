@@ -16,6 +16,7 @@
         "newLine": "lf",
         "lib": ["ESNext", "DOM"],
         "importHelpers": true,
+        // "watch": false
         "incremental": true,
         "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
         
@@ -51,6 +52,17 @@
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "skipLibCheck": true,
+    },
+    
+    "watchOptions": {
+        "excludeDirectories": [
+            "**/node_modules",
+        ],
+        
+        "watchFile": "useFsEvents",
+        "watchDirectory": "useFsEvents",
+        
+        "fallbackPolling": "dynamicPriority"
     }
 }
 
