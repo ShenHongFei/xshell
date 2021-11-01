@@ -81,11 +81,11 @@ declare global {
         ): { [name: string]: string }
         
         
-        /** - type?: `'SINGLE'` */
-        quote (this: string, type?: keyof typeof QUOTES | 'PSH'): string
+        /** - type?: `'single'` */
+        quote (this: string, type?: keyof typeof quotes | 'psh'): string
         
-        /** - shape?: `'PARENTHESIS'` */
-        bracket (this: string, shape?: keyof typeof BRACKETS): string
+        /** - shape?: `'parenthesis'` */
+        bracket (this: string, shape?: keyof typeof brackets): string
         
         surround (this: string, left: string, right?: string): string
         
@@ -101,18 +101,24 @@ declare global {
         rm (this: string, pattern: string | RegExp, flags?: string): string
         
         
-        // --- colors
+        // --- chalk colors
         readonly red: string
+        readonly red_: string
         
         readonly green: string
+        readonly green_: string
         
         readonly yellow: string
+        readonly yellow_: string
         
         readonly blue: string
+        readonly blue_: string
         
         readonly magenta: string
+        readonly magenta_: string
         
         readonly cyan: string
+        readonly cyan_: string
         
         readonly grey: string
         
@@ -122,6 +128,7 @@ declare global {
         
         
         // --- text processing
+        /** split string to lines and strip last '' after last \n */
         split_lines (this: string): string[]
         
         trim_doc_comment (this: string): string
@@ -131,7 +138,10 @@ declare global {
         
         to_base64 (this: string): string
         
+        /** - buffer: `false` return raw Buffer */
         decode_base64 (this: string): string
+        decode_base64 (this: string, buffer: true): Buffer
+        decode_base64 (this: string, buffer?: boolean): string | Buffer
         
         
         space (this: string): string
@@ -219,68 +229,79 @@ import byte_size from 'byte-size'
 import EmojiRegex from 'emoji-regex'
 
 import strip_ansi from 'strip-ansi'
-import colors from 'colors/safe'
+import chalk from 'chalk'
 
-export const EMOJI_REGEX = EmojiRegex()
+export const emoji_regex = EmojiRegex()
 
-export { colors }
+export { chalk }
 
 
 export function to_method_property_descriptors (methods: { [name: string]: Function }): PropertyDescriptorMap {
-    return Object.fromEntries( Object.entries(methods).map( ([name, value]) => ([name, {
-        configurable: true,
-        writable: true,
-        enumerable: false,
-        value,
-    } as PropertyDescriptor])))
+    return Object.fromEntries(
+        Object.entries(methods)
+            .map(([name, value]) => ([name, {
+                configurable: true,
+                writable: true,
+                enumerable: false,
+                value,
+            } as PropertyDescriptor])
+        ))
 }
 
 
 export function to_getter_property_descriptors (getters: { [name: string]: Function }): PropertyDescriptorMap {
-    return Object.fromEntries( Object.entries(getters).map( ([name, get]) => ([name, {
-        configurable: true,
-        enumerable: false,
-        get,
-    } as PropertyDescriptor])))
+    return Object.fromEntries(
+        Object.entries(getters)
+            .map(([name, get]) => ([name, {
+                configurable: true,
+                enumerable: false,
+                get,
+            } as PropertyDescriptor])
+        ))
 }
 
 
-export const CJK = '([\u2e80-\u9fff\uf900-\ufaff])'
+export const cjk = '([\u2e80-\u9fff\uf900-\ufaff])'
 
-export const QUOTES = {
-    SINGLE:     "'",
-    DOUBLE:     '"',
-    BACKTICK:   '`',
+export const quotes = {
+    single:     "'",
+    double:     '"',
+    backtick:   '`',
 }
 
-export const BRACKETS = {
-    ROUND:  [ '(', ')' ],
-    SQUARE: [ '[', ']' ],
-    CURLY:  [ '{', '}' ],
-    POINTY: [ '<', '>' ],
-    CORNER: [ '「', '」' ],
-    FAT:    [ '【', '】' ],
-    TORTOISE_SHELL: [ '〔', '〕' ],
+export const brackets = {
+    round:  ['(', ')'],
+    square: ['[', ']'],
+    curly:  ['{', '}'],
+    pointy: ['<', '>'],
+    corner: ['「', '」'],
+    fat:    ['【', '】'],
+    tortoise_shell: ['〔', '〕'],
 } as const
 
-
+const color_map = Object.fromEntries(
+    ['red_', 'green_', 'yellow_', 'blue_', 'magenta_', 'cyan_'].map(color =>
+        [color, `${color.slice(0, -1)}Bright`])
+)
 
 // ------------------------------------ String.prototype
 Object.defineProperties( String.prototype, {
     ... to_getter_property_descriptors({
         width (this: string) {
-            const s = strip_ansi(this.replace(EMOJI_REGEX, '  '))
+            const s = strip_ansi(
+                this.replace(emoji_regex, '  ')
+            )
             let width = 0
             for (let i = 0;  i < s.length;  i++) {
                 const code = s.codePointAt(i)
                 
                 if (
-                    (code <= 0x1F || (code >= 0x7F && code <= 0x9F)) ||  // Ignore control characters
-                    code >= 0x300 && code <= 0x36F  // Ignore combining characters
+                    (code <= 0x1f || (code >= 0x7f && code <= 0x9f)) ||  // ignore control characters
+                    code >= 0x300 && code <= 0x36f  // ignore combining characters
                 ) continue
                 
-                // Surrogates
-                if (code > 0xFFFF)
+                // surrogates
+                if (code > 0xffff)
                     i++
                 
                 width += is_codepoint_fullwidth(code) ? 2 : 1
@@ -308,7 +329,7 @@ Object.defineProperties( String.prototype, {
                     code >= 0x300 && code <= 0x36F  // Ignore combining characters
                 ) continue
                 
-                // Surrogates (codepoint need two UTF-16 encoding units, thus here skip the first in order to prevent repeated counting) 
+                // surrogates (codepoint need two utf-16 encoding units, thus here skip the first in order to prevent repeated counting) 
                 if (code > 0xFFFF)
                     i++
                 
@@ -347,8 +368,9 @@ Object.defineProperties( String.prototype, {
         to_regx (this: string, preservations: string, flags = ''): RegExp {
             const preserved_chars = new Set(preservations)
             const replace_chars: string = Array.prototype.filter.call('|\\{}()[]^$+*?.-', (c: string) => !preserved_chars.has(c))
-                .map( (c: string) => c === ']'  ?  '\\]'  :  c )
-                .join('')
+                .map((c: string) => 
+                    c === ']' ? '\\]' : c
+                ).join('')
             
             return new RegExp( this.replace(new RegExp(`[${replace_chars}]`, 'g'), '\\$&'),  flags)
         },
@@ -370,14 +392,16 @@ Object.defineProperties( String.prototype, {
             let last_end = 0
             
             // placeholder matched group indexes
-            let $placeholders: { [name: string]: number } = { }
+            let $placeholders: Record<string, number> = { }
             
             let regx_parts = [ ]
             
             function add_part (left: number, right?: number) {
                 const part = pattern.slice(left, right)
                 if (part)
-                    regx_parts.push(part.to_regx(preservations).source.bracket())
+                    regx_parts.push(
+                        part.to_regx(preservations).source.bracket()
+                    )
             }
             
             pattern.replace(pattern_placeholder, ($0, offset) => {
@@ -385,24 +409,29 @@ Object.defineProperties( String.prototype, {
                 last_end = offset + $0.length
                 
                 const placeholder = $0.slice(1, -1)
-                let [ placeholder_name, placeholder_pattern ] = placeholder.split(':').map( s => s.trim() )
+                let [placeholder_name, placeholder_pattern] = placeholder.split(':').map(s => s.trim())
                 let optional = false
                 if (placeholder_name.endsWith('?')) {
                     placeholder_name = placeholder_name.slice(0, -1)
                     optional = true
                 }
-                $placeholders[placeholder_name] = regx_parts.push( placeholder_pattern  ?  placeholder_pattern.bracket() + ( optional  ?  '?'  : ''  )  :  '(.*?)' )
+                $placeholders[placeholder_name] = regx_parts.push(
+                    placeholder_pattern ? 
+                        `${placeholder_pattern.bracket()}${optional ?  '?' : ''}`
+                    :
+                        '(.*?)'
+                )
                 return ''
             })
             
             add_part(last_end)
             
             // modify last (.*?) to greedy in order to satisfy the situation of .{suffix}
-            regx_parts = regx_parts.filter( part => part)
+            regx_parts = regx_parts.filter(part => part)
             if (regx_parts.last === '(.*?)')
                 regx_parts[regx_parts.length - 1] = '(.*)'
             
-            const pattern_regx = new RegExp(regx_parts.join(''), flags )
+            const pattern_regx = new RegExp(regx_parts.join(''), flags)
             
             
             // --- match original string based on pattern_regx, and get result to build placeholders dict
@@ -410,11 +439,15 @@ Object.defineProperties( String.prototype, {
             
             if (!matches) return this
             
-            const placeholders = Object.fromEntries( Object.entries($placeholders).map( ([name, $i]) => ([
-                [ name, matches[$i] ],
-                [ name + '.before', matches[ $i - 1 ] || '' ],
-                [ name + '.after',  matches[ $i + 1 ] || '' ],
-            ])).flat())
+            const placeholders = Object.fromEntries(
+                    Object.entries($placeholders)
+                        .map(([name, $i]) => [
+                            [name, matches[$i]],
+                            [`${name}.before`, matches[$i - 1] || ''],
+                            [`${name}.after`,  matches[$i + 1] || ''],
+                        ])
+                        .flat()
+            )
             
             
             // --- convert pattern_ to replacement_str, if transformer exists then apply on placeholder
@@ -422,16 +455,22 @@ Object.defineProperties( String.prototype, {
             let replacement_parts = [ ]
             
             pattern_.replace(pattern_placeholder, ($0, offset) => {
-                replacement_parts.push(pattern_.slice(last_end, offset))
+                replacement_parts.push(
+                    pattern_.slice(last_end, offset)
+                )
                 last_end = offset + $0.length
                 
                 const placeholder_name = $0.slice(1, -1)
                 
-                replacement_parts.push( transformer(placeholder_name, placeholders[placeholder_name], placeholders))
+                replacement_parts.push(
+                    transformer(placeholder_name, placeholders[placeholder_name], placeholders)
+                )
                 
                 return ''
             })
-            replacement_parts.push(pattern_.slice(last_end))
+            replacement_parts.push(
+                pattern_.slice(last_end)
+            )
             
             return this.replace(pattern_regx, replacement_parts.join(''))
         },
@@ -447,14 +486,16 @@ Object.defineProperties( String.prototype, {
             let last_end = 0
             
             // placeholder matched group index
-            let $placeholders: { [name: string]: number } = { }
+            let $placeholders: Record<string, number> = { }
             
             let regx_parts = [ ]
             
             function add_part (left: number, right?: number) {
                 const part = pattern.slice(left, right)
                 if (part)
-                    regx_parts.push(part.to_regx(preservations).source.bracket())
+                    regx_parts.push(
+                        part.to_regx(preservations).source.bracket()
+                    )
             }
             
             pattern.replace(pattern_placeholder, ($0, offset) => {
@@ -462,44 +503,54 @@ Object.defineProperties( String.prototype, {
                 last_end = offset + $0.length
                 
                 const placeholder = $0.slice(1, -1)
-                let [ placeholder_name, placeholder_pattern ] = placeholder.split(':').map( s => s.trim() )
+                let [placeholder_name, placeholder_pattern] = placeholder.split(':').map(s => s.trim())
                 let optional = false
                 if (placeholder_name.endsWith('?')) {
                     placeholder_name = placeholder_name.slice(0, -1)
                     optional = true
                 }
-                $placeholders[placeholder_name] = regx_parts.push( placeholder_pattern  ?  placeholder_pattern.bracket() + ( optional  ?  '?'  : ''  )  :  '(.*?)' )
+                
+                $placeholders[placeholder_name] = regx_parts.push(
+                    placeholder_pattern ? 
+                        `${placeholder_pattern.bracket()}${optional ?  '?' : ''}`
+                    :
+                        '(.*?)'
+                )
                 return ''
             })
             
             add_part(last_end)
             
             // convert last (.*?) to greedy, to make .{suffix} work
-            regx_parts = regx_parts.filter( part => part)
-            if (regx_parts.last === '(.*?)')
+            regx_parts = regx_parts.filter(part => part)
+            if (regx_parts[regx_parts.length - 1] === '(.*?)')
                 regx_parts[regx_parts.length - 1] = '(.*)'
             
             const pattern_regx = new RegExp(regx_parts.join(''), flags)
             
             
-           // --- match original string based on pattern_regx, and get result to build placeholders dict
+            // --- match original string based on pattern_regx, and get result to build placeholders dict
             const matches = pattern_regx.exec(this)
             
             if (!matches) return { }
             
             return Object.fromEntries(
-                Object.entries($placeholders).map( ([name, $i]) => ([ name, matches[$i] || '' ]) )
+                Object.entries($placeholders)
+                    .map(([name, $i]) => 
+                        [name, matches[$i] || '']
+                    )
             )
         },
         
-        quote (this: string, type: keyof typeof QUOTES | 'PSH' = 'SINGLE') {
-            if (type === 'PSH') return '& ' + this.quote()
-            return this.surround(QUOTES[type])
+        quote (this: string, type: keyof typeof quotes | 'psh' = 'single') {
+            if (type === 'psh')
+                return `& ${this.quote()}`
+            return this.surround(quotes[type])
         },
         
         
-        bracket (this: string, shape: keyof typeof BRACKETS = 'ROUND') {
-            return this.surround(...BRACKETS[shape] as [string, string])
+        bracket (this: string, shape: keyof typeof brackets = 'round') {
+            return this.surround(...brackets[shape] as [string, string])
         },
         
         
@@ -566,8 +617,11 @@ Object.defineProperties( String.prototype, {
         },
         
         
-        decode_base64 (this: string) {
-            return Buffer.from(this, 'base64').toString()
+        decode_base64 (this: string, buffer = false) {
+            const buf = Buffer.from(this, 'base64')
+            if (buffer)
+                return buf
+            return buf.toString()
         },
         
         
@@ -580,40 +634,47 @@ Object.defineProperties( String.prototype, {
             if (!this) return this
             let text_: string
             text_ = this
-                .replace(new RegExp(CJK + `(['"])`, 'g'), '$1 $2')
-                .replace(new RegExp(`(['"])` + CJK, 'g'), '$1 $2')
+                .replace(new RegExp(cjk + `(['"])`, 'g'), '$1 $2')
+                .replace(new RegExp(`(['"])` + cjk, 'g'), '$1 $2')
                 
                 .replace(/(["']+)\s*(.+?)\s*(["']+)/g, '$1$2$3')
                 
-                .replace(new RegExp(CJK + '([\\+\\-\\*\\/=&\\\\\\|<>])([A-Za-z0-9])', 'g'), '$1 $2 $3')
-                .replace(new RegExp('([A-Za-z0-9])([\\+\\-\\*\\/=&\\\\\\|<>])' + CJK, 'g'), '$1 $2 $3')
+                .replace(new RegExp(cjk + '([\\+\\-\\*\\/=&\\\\\\|<>])([A-Za-z0-9])', 'g'), '$1 $2 $3')
+                .replace(new RegExp('([A-Za-z0-9])([\\+\\-\\*\\/=&\\\\\\|<>])' + cjk, 'g'), '$1 $2 $3')
                 
             const textBak = text_
             
-            text_ = text_.replace(new RegExp(CJK + '([\\(\\[\\{<\u201c]+(.*?)[\\)\\]\\}>\u201d]+)' + CJK, 'g'), '$1 $2 $4')
+            text_ = text_.replace(new RegExp(cjk + '([\\(\\[\\{<\u201c]+(.*?)[\\)\\]\\}>\u201d]+)' + cjk, 'g'), '$1 $2 $4')
             
             if (text_ === textBak)
                 text_ = text_
-                    .replace(new RegExp(CJK + '([\\(\\[\\{<\u201c>])', 'g'), '$1 $2')
-                    .replace(new RegExp('([\\)\\]\\}>\u201d<])' + CJK, 'g'), '$1 $2')
+                    .replace(new RegExp(cjk + '([\\(\\[\\{<\u201c>])', 'g'), '$1 $2')
+                    .replace(new RegExp('([\\)\\]\\}>\u201d<])' + cjk, 'g'), '$1 $2')
             
             return text_
                 // eslint-disable-next-line no-useless-escape
                 .replace(/([\(\[\{<\u201c]+)(\s*)(.+?)(\s*)([\)\]\}>\u201d]+)/g, '$1$3$5')
-                .replace(new RegExp(CJK + '([~!;:,\\.\\?\u2026])([A-Za-z0-9])', 'g'), '$1$2 $3')
-                .replace(new RegExp(CJK + '([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])', 'g'), '$1 $2')
-                .replace(new RegExp('([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])' + CJK, 'g'), '$1 $2')
+                .replace(new RegExp(cjk + '([~!;:,\\.\\?\u2026])([A-Za-z0-9])', 'g'), '$1$2 $3')
+                .replace(new RegExp(cjk + '([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])', 'g'), '$1 $2')
+                .replace(new RegExp('([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])' + cjk, 'g'), '$1 $2')
         }
     }),
     
     
-    // ------------ colors
-    ... Object.fromEntries([ 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'grey', 'underline' ].map( color => ([color, {
-        configurable: true,
-        get (this: string) {
-            return colors[color](this)
-        }
-    }]))),
+    // ------------ chalk colors
+    ... Object.fromEntries(
+        [
+            'red',  'green',  'yellow',  'blue',  'magenta',  'cyan',  'grey', 
+            'red_', 'green_', 'yellow_', 'blue_', 'magenta_', 'cyan_',
+            'underline',
+        ].map(color =>
+            ([color, {
+                configurable: true,
+                get (this: string) {
+                    return chalk[color_map[color] || color](this)
+                }
+            }]))
+        ),
     
     
     // ------------ file path ops
@@ -659,7 +720,7 @@ Object.defineProperties( String.prototype, {
 
 
 // ------------------------------------ Date.prototype
-Object.defineProperties( Date.prototype, to_method_property_descriptors({
+Object.defineProperties(Date.prototype, to_method_property_descriptors({
     to_str (this: Date, ms = false) {
         return this.toLocaleString().replace(/(\d+)\/(\d+)\/(\d+) ?(上午|下午)(\d+):(\d{2}):(\d{2}).*/, (matches, year, month, day, ampm, hour, minute, second) => {
             hour = Number(hour)
@@ -693,10 +754,10 @@ Object.defineProperties( Date.prototype, to_method_property_descriptors({
 
 
 // ------------------------------------ Number.prototype
-Object.defineProperties( Number.prototype, to_method_property_descriptors({
+Object.defineProperties(Number.prototype, to_method_property_descriptors({
     to_fsize_str (this: number, units: 'iec' | 'metric' = 'iec') {
         const { value, unit } = byte_size(this, { units })
-        return `${value} ${(unit as string).rm('i').toUpperCase()}`
+        return `${value} ${(unit as string).rm('i')}`
     },
     
     to_bin_str (this: number) {
@@ -704,7 +765,7 @@ Object.defineProperties( Number.prototype, to_method_property_descriptors({
     },
     
     to_hex_str (this: number, length?: number) {
-        const s = this.toString(16).toUpperCase()
+        const s = this.toString(16)
         if (!length)
             length = Math.ceil(s.length / 4) * 4
         return `0x${'0'.repeat(length - s.length)}${s}`
@@ -718,7 +779,7 @@ Object.defineProperties( Number.prototype, to_method_property_descriptors({
 
 
 // ------------------------------------ Array.prototype
-Object.defineProperties( Array.prototype, {
+Object.defineProperties(Array.prototype, {
     ... to_getter_property_descriptors({
         last (this: any[]) {
             return this[this.length - 1]
@@ -740,11 +801,10 @@ Object.defineProperties( Array.prototype, {
         
         trim_lines (this: string[], { trim_line = true, rm_empty_lines = true, rm_last_empty_lines = false }: { trim_line?: boolean, rm_empty_lines?: boolean, rm_last_empty_lines?: boolean } = { }) {
             if (!this.length) return this
-            // eslint-disable-next-line @typescript-eslint/no-this-alias
             let lines = this
             
             if (trim_line)
-                lines = lines.map( line => line.trim() )
+                lines = lines.map(line => line.trim() )
             
             if (rm_empty_lines)
                 return lines.filter( line => line )
@@ -772,16 +832,23 @@ Object.defineProperties( Array.prototype, {
         },
         
         split_indents (this: string[]): { indent: number, text: string }[] {
-            return this.map( line => line.split_indent())
+            return this.map(line => 
+                line.split_indent()
+            )
         },
         
         indent (this: string[], width?: number, character: string = ' ') {
-            return this.map( line => character.repeat(width) + line )
+            return this.map(line => 
+                character.repeat(width) + line
+            )
         },
         
         indent2to4 (this: string[]) {
-            return this.split_indents().map( line => 
-                ' '.repeat( Math.floor( line.indent / 2 ) * 4 ) + line.text
+            return this.split_indents()
+                .map(line => 
+                    ' '.repeat(
+                        Math.floor(line.indent / 2) * 4
+                    ) + line.text
             )
         },
         
@@ -805,68 +872,69 @@ export function to_json_safely (obj: any, replacer?: any) {
 
 
 export function is_codepoint_fullwidth (codepoint: number) {
-    // Code points are derived from:
+    // code points are derived from:
     // http://www.unix.org/Public/UNIDATA/EastAsianWidth.txt
     return (
         !Number.isNaN(codepoint) &&
         codepoint >= 0x1100 &&
         (
-            codepoint <= 0x115F || // Hangul Jamo
+            codepoint <= 0x115f || // hangul jamo
             
+            codepoint === 0x201c || codepoint === 0x201d ||  // 
             codepoint === 0x2026 ||  // …
-            codepoint === 0x203B ||  // ※
+            codepoint === 0x203b ||  // ※
             
-            // Arrows
+            // arrows
             (0x2190 <= codepoint && codepoint <= 0x21FF) ||
             
-            codepoint === 0x2329 || // LEFT-POINTING ANGLE BRACKET
-            codepoint === 0x232A || // RIGHT-POINTING ANGLE BRACKET
+            codepoint === 0x2329 || // left-pointing angle bracket
+            codepoint === 0x232a || // right-pointing angle bracket
             
             // ①
-            (0x2460 <= codepoint && codepoint <= 0x24FF) ||
+            (0x2460 <= codepoint && codepoint <= 0x24ff) ||
             
-            // Box Drawing
-            (0x2500 <= codepoint && codepoint <= 0x257F) ||
+            // box drawing
+            (0x2500 <= codepoint && codepoint <= 0x257f) ||
             
-            // Shapes, Symbols, …
-            (0x2580 <= codepoint && codepoint <= 0x2BEF) ||
+            // shapes, symbols, …
+            (0x2580 <= codepoint && codepoint <= 0x2bef) ||
             
-            // CJK Radicals Supplement .. Enclosed CJK Letters and Months
-            (0x2E80 <= codepoint && codepoint <= 0x3247 && codepoint !== 0x303F) ||
+            // cjk radicals supplement .. enclosed cjk letters and months
+            (0x2e80 <= codepoint && codepoint <= 0x3247 && codepoint !== 0x303f) ||
             
-            // Enclosed CJK Letters and Months .. CJK Unified Ideographs Extension A
-            (0x3250 <= codepoint && codepoint <= 0x4DBF) ||
+            // enclosed cjk letters and months .. cjk unified ideographs extension a
+            (0x3250 <= codepoint && codepoint <= 0x4dbf) ||
             
-            // CJK Unified Ideographs .. Yi Radicals
+            // cjk unified ideographs .. yi radicals
             (0x4E00 <= codepoint && codepoint <= 0xA4C6) ||
             
-            // Hangul Jamo Extended-A
-            (0xA960 <= codepoint && codepoint <= 0xA97C) ||
+            // hangul jamo extended-a
+            (0xa960 <= codepoint && codepoint <= 0xa97c) ||
             
-            // Hangul Syllables
-            (0xAC00 <= codepoint && codepoint <= 0xD7A3) ||
+            // hangul syllables
+            (0xac00 <= codepoint && codepoint <= 0xd7a3) ||
             
-            // CJK Compatibility Ideographs
-            (0xF900 <= codepoint && codepoint <= 0xFAFF) ||
+            // cjk compatibility ideographs
+            (0xf900 <= codepoint && codepoint <= 0xfaff) ||
             
-            // Vertical Forms
-            (0xFE10 <= codepoint && codepoint <= 0xFE19) ||
+            // vertical forms
+            (0xfe10 <= codepoint && codepoint <= 0xfe19) ||
             
-            // CJK Compatibility Forms .. Small Form Variants
-            (0xFE30 <= codepoint && codepoint <= 0xFE6B) ||
+            // cjk compatibility forms .. small form variants
+            (0xfe30 <= codepoint && codepoint <= 0xfe6b) ||
             
-            // Halfwidth and Fullwidth Forms
-            (0xFF01 <= codepoint && codepoint <= 0xFF60) ||
-            (0xFFE0 <= codepoint && codepoint <= 0xFFE6) ||
+            // halfwidth and fullwidth forms
+            (0xff01 <= codepoint && codepoint <= 0xff60) ||
+            (0xffe0 <= codepoint && codepoint <= 0xffe6) ||
             
-            // Kana Supplement
-            (0x1B000 <= codepoint && codepoint <= 0x1B001) ||
+            // kana supplement
+            (0x1b000 <= codepoint && codepoint <= 0x1b001) ||
             
-            // Enclosed Ideographic Supplement
-            (0x1F200 <= codepoint && codepoint <= 0x1F251) ||
+            // enclosed ideographic supplement
+            (0x1f200 <= codepoint && codepoint <= 0x1f251) ||
             
-            // CJK Unified Ideographs Extension B .. Tertiary Ideographic Plane
-            (0x20000 <= codepoint && codepoint <= 0x3FFFD)
+            // cjk unified ideographs extension b .. tertiary ideographic plane
+            (0x20000 <= codepoint && codepoint <= 0x3fffd)
         )
     )
 }

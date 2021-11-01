@@ -21,20 +21,18 @@ declare module 'tough-cookie' {
 
 import './prototype'
 import type { Encoding } from './file'
-import { inspect } from './utils'
+import { inspect, output_width } from './utils'
 
 export enum MyProxy {
-    HTTP1080 = 'http://127.0.0.1:1080',
-    whistle = 'http://127.0.0.1:8899',
+    socks5 = 'http://localhost:10080',
+    whistle = 'http://localhost:8899',
 }
 
 
 // ------------------------------------ Fetch, Request
-const DEFAULT_RETRIES = 3
-
 const cookie_store = new MemoryCookieStore()
 
-export const Cookies = {
+export const cookies = {
     store: cookie_store,
     
     jar: request_promise.jar(cookie_store),
@@ -64,7 +62,7 @@ export const _request = request_promise.defaults({
     /** prevent 302 redirect cause error, which is a boolean to set whether status codes other than 2xx should also reject the promise */
     simple: false,
     
-    jar: Cookies.jar
+    jar: cookies.jar
 })
 
 
@@ -88,31 +86,23 @@ export async function request_retry (retries: number, request_options: request_p
 
 
 export interface RequestOptions {
+    method?: 'get' | 'post' | 'put' | 'head' | 'delete' | 'patch'
+    
     queries?: Record<string, any>
-    
-    /** HTTP request body data */
-    body?: string | Record<string, any>
-    
-    /** is JSON format */
-    json?: boolean
-    
-    /** form (x-www-form-urlencoded or multipart)  format */
-    form?: boolean | 'application/x-www-form-urlencoded' | 'multipart/form-data'
-    
-    /** `false` when proxy is true then use MyProxy.whistle */
-    proxy?: boolean | MyProxy | string
-    
-    method?: 'GET' | 'POST' | 'PUT' | 'HEAD' | 'DELETE' | 'PATCH'
     
     headers?: Record<string, string>
     
-    /** `(webpage content-type: charset=gb18030) || 'UTF-8'` */
+    body?: string | Record<string, any>
+    
+    type?: 'application/json' | 'application/x-www-form-urlencoded' | 'multipart/form-data'
+    
+    
+    proxy?: boolean | MyProxy | string
+    
     encoding?: Encoding
     
-    /** `false` */
-    retries?: boolean | number
+    retries?: true | number
     
-    /** `20 * 1000` */
     timeout?: number
     
     auth?: {
@@ -120,7 +110,6 @@ export interface RequestOptions {
         password: string
     }
     
-    /** `raw -> false; else -> true` */
     gzip?: boolean
     
     cookies?: Record<string, string>
@@ -130,18 +119,27 @@ export interface RequestRawOptions extends RequestOptions {
     raw: true
 }
 
+/** 
+    - url: must be full url
+    - options:
+        - raw: `false` 传入后返回整个 response
+        - encoding: `(response content-type: charset=gb18030) || 'utf-8'` when 'binary' then return buffer
+        - type: `'application/json'` request content-type header (if has body)
+        - proxy: `false` proxy === true then use MyProxy.whistle
+        - retries: `false` could be true (default 3 times) or retry times
+        - timeout: `20 * 1000`
+        - gzip: `raw -> false; else -> true`
+*/
 export async function request (url: string | URL): Promise<string>
 export async function request (url: string | URL, options: RequestRawOptions): Promise<request_lib.Response>
-export async function request (url: string | URL, options: RequestOptions & { encoding: 'BINARY' }): Promise<Buffer>
+export async function request (url: string | URL, options: RequestOptions & { encoding: 'binary' }): Promise<Buffer>
 export async function request (url: string | URL, options: RequestOptions): Promise<string>
 export async function request (url: string | URL, {
     queries,
     
     body,
     
-    json,
-    
-    form,
+    type = 'application/json',
     
     proxy,
     
@@ -153,7 +151,7 @@ export async function request (url: string | URL, {
     
     raw = false,
     
-    retries = false,
+    retries,
     
     timeout = 20 * 1000,
     
@@ -169,16 +167,13 @@ export async function request (url: string | URL, {
     if (!url.startsWith('http'))
         url = 'http://' + url
     
+    const _body = body  // for error log
+    
     if (body && !method)
-        method = 'POST'
+        method = 'post'
     
-    if (form) {
-        // pass
-    } else if (typeof body !== 'undefined' && (typeof body !== 'string' && !Buffer.isBuffer(body))) {
-        json = true
+    if (type === 'application/json' && typeof body !== 'undefined' && (typeof body !== 'string' && !Buffer.isBuffer(body)))
         body = JSON.stringify(body)
-    }
-    
     
     // --- proxy
     if (proxy) {
@@ -194,25 +189,43 @@ export async function request (url: string | URL, {
     
     const options: request_lib.Options & { resolveWithFullResponse: boolean } = {
         url,
-        method,
+        
+        ... method ? { method: method.toUpperCase() } : { },
+        
         proxy,
+        
         gzip,
+        
         encoding: null,
+        
         resolveWithFullResponse: true,
+        
         headers: {
             'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja-JP;q=0.6,ja;q=0.5',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
-            ... json && !form ? { 'content-type': 'application/json' } : { }, 
-            ... cookies ? { cookie: Object.entries(cookies).map( ([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('; ') } : { },
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
+            ... body ? { 'content-type': type } : { }, 
+            ... cookies ? {
+                cookie: Object.entries(cookies)
+                    .map(([key, value]) => 
+                        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+                    ).join('; ')
+            } : { },
             ... headers
         },
         
-        ... queries  ?  { qs: queries }  :  { },
-        ... (!form && body)  ?  { body }  :  { },
-        ... (form === true || form === 'application/x-www-form-urlencoded')  ? { form: body } : { },
-        ... (form === 'multipart/form-data') ? { formData: body as Record<string, any> } : { },
+        ... queries ? { qs: queries } : { },
+        
+        // --- body
+        ... (() => {
+            if (!body) return { }
+            if (type === 'application/x-www-form-urlencoded') return { form: body }
+            if (type === 'multipart/form-data') return { formData: body as Record<string, any> }
+            return { body }
+        })(),
+        
         ... timeout ? { timeout } : { },
-        ... auth    ? { auth } : { },
+        
+        ... auth ? { auth } : { },
     }
     
     let resp: request_lib.Response
@@ -220,18 +233,19 @@ export async function request (url: string | URL, {
     try {
         if (retries) {
             if (retries === true)
-                retries = DEFAULT_RETRIES
+                retries = 3
             
             resp = await request_retry(retries, options)
         } else
             resp = await _request(options)
+        
         if (!(200 <= resp.statusCode && resp.statusCode <= 299))
             throw new StatusCodeError(resp.statusCode, resp.body, options, resp)
         
     } catch (error) {
         const {
             name, 
-            options: { method, url, uri, qs, body }, 
+            options: { method, url, uri, qs }, 
             response,
         }: {
             options: OptionsWithUri & OptionsWithUrl
@@ -239,37 +253,37 @@ export async function request (url: string | URL, {
         } & Error = error
         
         error[inspect.custom] = () => {
-            let s = '─'.repeat(global.WIDTH / 2) + '\n' +
-                `${name.red} ${(method || 'GET').blue} ${String(url || uri).blue.underline}\n`
+            let s = '─'.repeat(output_width / 2) + '\n' +
+                `${name.red} ${(method || 'get').blue} ${String(url || uri).blue.underline}\n`
             
             if (qs)
-                s += `\n${'Request Query:'.blue}\n` +
+                s += `\n${'request.query:'.blue}\n` +
                     inspect(qs) + '\n'
             
-            if (body)
-                s += `\n${'Request Body:'.blue}\n` +
+            if (_body)
+                s += `\n${'request.body:'.blue}\n` +
                     inspect(body) + '\n'
             
             if (name === 'StatusCodeError')
-                s += `\n${'Status Code:'.yellow} ${String(error.statusCode).red}\n`
+                s += `\n${'response.status:'.yellow} ${String(error.statusCode).red}\n`
             else if (error instanceof RequestError)
-                s += `\n${'Cause:'.yellow}\n` +
+                s += `\n${'response.cause:'.yellow}\n` +
                     `${inspect(error.cause)}\n`
             else
                 s += `\n${inspect(error)}\n`
                 
             if (response) {
-                s += `\n${'Response Headers:'.yellow}\n` + 
+                s += `\n${'response.headers:'.yellow}\n` + 
                     `${inspect(response.headers)}\n`
                 
                 if (response.body)
-                    s += `\n${'Response Body:'.yellow}\n` +
+                    s += `\n${'response.body:'.yellow}\n` +
                         `${inspect(response.body.toString())}\n`
             }
             
-            s += `\n${'Stack:'.yellow}\n` +
+            s += `\n${'stack:'.yellow}\n` +
                 `${new Error().stack}\n` +
-                '─'.repeat(global.WIDTH / 2)
+                '─'.repeat(output_width / 2)
             
             return s
         }
@@ -277,26 +291,28 @@ export async function request (url: string | URL, {
         throw error
     }
     
-    if (encoding === 'BINARY')
-        return resp.body
-    
-    encoding = (encoding || /charset=(.*)/.exec(resp.headers['content-type'])?.[1] || 'UTF-8') as Encoding
-    
     if (raw)
         return resp
     
     if (!resp.body)
         return resp.body
     
+    // --- decode body
+    if (encoding === 'binary')
+        return resp.body
+        
+    encoding ||= /charset=(.*)/.exec(resp.headers['content-type'])?.[1] as Encoding || 'utf-8'
+    
+    if (/utf-?8/i.test(encoding))
+        return (resp.body as Buffer).toString('utf-8')
+    
     return iconv.decode((resp.body as Buffer), encoding)
 }
 
 
+/** make http request and parse body as json */
 export async function request_json <T = any> (url: string | URL, options?: RequestOptions): Promise<T> {
-    const resp = await request(url, {
-        json: true,
-        ... options
-    })
+    const resp = await request(url, options)
     if (!resp) return
     try {
         return JSON.parse(resp)
@@ -339,11 +355,13 @@ export function parse_html (html: string) {
 
 /** use $.html(cheerio_element) to get outer html */
 export async function request_page (url: string | URL, options?: RequestOptions) {
-    return parse_html( await request(url, options) )
+    return parse_html(
+        await request(url, options)
+    )
 }
 
 
-export function to_curl (url: string | URL, { queries, headers, method, body, json, proxy, exe = true }: RequestOptions & { exe?: boolean } = { }) {
+export function to_curl (url: string | URL, { queries, headers, method, body, proxy, exe = true }: RequestOptions & { exe?: boolean } = { }) {
     if (proxy === true)
         proxy = process.env.http_proxy
     
@@ -360,32 +378,36 @@ export function to_curl (url: string | URL, { queries, headers, method, body, js
         //     ( proxy  ?  ' --proxy ' + proxy.quote()  :  ' --noproxy ' + '*'.quote())
         // ) +
         ( proxy  ?  ` --proxy ${proxy.quote()}`  :  '' ) +
-        ( method && method !== 'GET'  ?  ` -X ${method}`  :  '' ) +
+        ( method && method !== 'get'  ?  ` -X ${method}`  :  '' ) +
         ( headers  ?  Object.entries(headers).map( ([key, value]) => ' -H ' + `${key}: ${value}`.quote() ).join('') : '' ) +
-        ( json  ?  ' -H ' + 'content-type: application/json'.quote()  :  '') +
+        ( body  ?  ' -H ' + 'content-type: application/json'.quote()  :  '') +
         ( body  ?  ' --data ' + JSON.stringify(body).quote()  :  '')
 }
 
 
 
 
-// ------------------------------------ RPC Client
-/** POST JSON to http://127.0.0.1:8421/api/rpc */
+// ------------------------------------ rpc client
+/** post json to http://localhost:8421/api/rpc
+    - func: function name
+    - args?: argument array
+    - options?:
+        - ignore?: `false` wait for execution but do not serialize result to response
+        - async?: `false` do not wait for exec
+*/
 export async function rpc (
     func: string, 
     args?: any[], 
-    { url = 'http://127.0.0.1:8421/api/rpc', async: _async = false, ignore = false }: { url?: string, async?: boolean, ignore?: boolean } = { }
+    { url = 'http://localhost:8421/api/rpc', async: _async = false, ignore = false }: { url?: string, async?: boolean, ignore?: boolean } = { }
 ) {
-    if (!func) {
-        console.error('RPC Client Error: NO FUNC')
-        throw new Error('RPC Client Error: NO FUNC')
-    }
+    if (!func) throw new Error('rpc argument error: no func')
+    
     return request_json(url, {
         body: {
             func,
-            ... args?.length  ?  { args }  :  { },
-            ... _async ? { async: _async } : { },
-            ... ignore ? { ignore } : { },
+            args,
+            async: _async,
+            ignore,
         }
     })
 }
@@ -393,9 +415,9 @@ export async function rpc (
 
 export function rpc_curl (func: string, args: any[]) {
     const cmd = args.find( arg => typeof arg === 'object') ?
-            to_curl('http://127.0.0.1:8421/api/rpc', { body: { func, args } })
+            to_curl('http://localhost:8421/api/rpc', { body: { func, args } })
         :
-            to_curl('http://127.0.0.1:8421/api/rpc', { queries: { func, args } })
+            to_curl('http://localhost:8421/api/rpc', { queries: { func, args } })
     return cmd
 }
 

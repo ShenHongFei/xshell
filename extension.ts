@@ -21,9 +21,9 @@ const my_commands = [
             const language_id = doc.languageId
             
             if (!(language_id in languages_map))
-                throw new Error(`${language_id} does not support REPL`)
+                throw new Error(`${language_id} does not support repl`)
             
-            const code = get_text('SELECTION_OR_LINE')
+            const code = get_text('selection or line')
             
             await rpc('repl_code', [...languages_map[language_id], code], { async: true })
         },
@@ -35,15 +35,15 @@ const my_commands = [
 
 /** get text by selector */
 function get_text (selector: 
-    'ALL' | 
-    'LINE' | 
-    'WORD' |
-    'SELECTION' | 
-    'SELECTION_OR_LINE' |
-    'SELECTION_OR_ALL'  |
-    'SELECTION_BEFORE' | 
-    'SELECTION_TO_TEXT_START' | 
-    'SELECTION_AFTER'
+    'all' | 
+    'line' | 
+    'word' |
+    'selection' | 
+    'selection or line' |
+    'selection or all'  |
+    'selection before' | 
+    'selection to text start' | 
+    'selection after'
 ) {
     const editor    = window.activeTextEditor
     const document  = editor.document
@@ -51,26 +51,26 @@ function get_text (selector:
     
     const text_selection = document.getText(selection)
     
-    if (selector === 'SELECTION')
+    if (selector === 'selection')
         return text_selection
         
     const text_all = document.getText()
     
-    if (selector === 'ALL')
+    if (selector === 'all')
         return text_all
         
     const text_line = document.lineAt(selection.active.line).text
         
-    if (selector === 'LINE')
+    if (selector === 'line')
         return text_line
     
-    if (selector === 'WORD')
+    if (selector === 'word')
         return document.getText(document.getWordRangeAtPosition(selection.active))
     
-    if (selector === 'SELECTION_OR_ALL')
+    if (selector === 'selection or all')
         return text_selection || text_all
     
-    if (selector === 'SELECTION_OR_LINE')
+    if (selector === 'selection or line')
         return text_selection || text_line
         
     
@@ -82,18 +82,18 @@ function get_text (selector:
     
     const line_start = new Position(start.line, 0)
     
-    if (selector === 'SELECTION_BEFORE')
+    if (selector === 'selection before')
         return document.getText( new Range(line_start, start) )
     
     
     const line_end   = new Position(start.line, line.text.length)
     
-    if (selector === 'SELECTION_AFTER')
+    if (selector === 'selection after')
         return document.getText( new Range(end, line_end) )
     
     
     const line_text_start = new Position(start.line, line.firstNonWhitespaceCharacterIndex)
-    if (selector === 'SELECTION_TO_TEXT_START')
+    if (selector === 'selection to text start')
         return document.getText(new Range(line_text_start, start)  )
 }
 

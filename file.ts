@@ -14,19 +14,19 @@ import { to_json } from './prototype'
 import { dedent } from './utils'
 
 
-export type Encoding = 'UTF-8' | 'GB18030' | 'Shift_JIS' | 'BINARY'
+export type Encoding = 'utf-8' | 'gb18030' | 'shift-jis' | 'binary'
 
 
 export async function fread (fp: string): Promise<string>
-export async function fread (fp: string, { dir, encoding, print }?: { dir?: string, encoding: 'BINARY', print?: boolean }): Promise<Buffer>
-export async function fread (fp: string, { dir, encoding, print }?: { dir?: string, encoding?: Encoding | 'AUTO', print?: boolean }): Promise<string>
+export async function fread (fp: string, { dir, encoding, print }?: { dir?: string, encoding: 'binary', print?: boolean }): Promise<Buffer>
+export async function fread (fp: string, { dir, encoding, print }?: { dir?: string, encoding?: Encoding | 'auto', print?: boolean }): Promise<string>
 export async function fread (fp: string, {
     dir, 
-    encoding = 'UTF-8', 
+    encoding = 'utf-8', 
     print = true
 }: {
     dir?: string
-    encoding?: Encoding | 'AUTO'
+    encoding?: Encoding | 'auto'
     print?: boolean } = { }
 ) {
     if (dir)
@@ -35,27 +35,27 @@ export async function fread (fp: string, {
         throw new Error('fp must be absolute path, or pass in "dir" parameter')
     
     if (print)
-        console.log('read:', fp)
+        console.log(`read: ${fp}`)
         
     const buffer = await fsp.readFile(fp)
     
-    if (encoding === 'BINARY')
+    if (encoding === 'binary')
         return buffer
     
-    if (encoding === 'UTF-8')
+    if (encoding === 'utf-8')
         return buffer.toString('utf8')
     
-    if (encoding === 'AUTO') {
+    if (encoding === 'auto') {
         const { detect } = await import('chardet')
         encoding = detect(buffer) as any
         if (print)
-            console.log(`${fp} probably has encoding: ${encoding}`)
+            console.log(`${fp} probably has encoding: ${encoding.toLowerCase()}`)
     }
     
     return iconv.decode(buffer, encoding)
 }
 
-export async function fread_lines (fp: string, options: { dir?: string, encoding?: Exclude<Encoding, 'BINARY'> | 'AUTO', print?: boolean } = { }) {
+export async function fread_lines (fp: string, options: { dir?: string, encoding?: Exclude<Encoding, 'binary'> | 'auto', print?: boolean } = { }) {
     return (await fread(fp, options))
         .split_lines()
 }
@@ -67,7 +67,9 @@ export async function fread_json <T = any> (fp: string, options: { dir?: string,
 }
 
 
-export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', print = true }: { dir?: string, encoding?: Encoding, print?: boolean } = { }) {
+export async function fwrite (fp: string, data: Buffer, options?: { dir?: string, print?: boolean }): Promise<void>
+export async function fwrite (fp: string, data: any, options?: { dir?: string, encoding?: Encoding, print?: boolean }): Promise<void>
+export async function fwrite (fp: string, data: any, { dir, encoding = 'utf-8', print = true }: { dir?: string, encoding?: Encoding, print?: boolean } = { }) {
     if (dir)
         fp = path.join(dir, fp)
     else if (!path.isAbsolute(fp))
@@ -76,7 +78,7 @@ export async function fwrite (fp: string, data: any, { dir, encoding = 'UTF-8', 
     if (print)
         console.log('write:', fp)
     
-    if (encoding === 'GB18030')
+    if (encoding === 'gb18030')
         data = iconv.encode(data, encoding)
     
     if (!Buffer.isBuffer(data) && typeof data !== 'string')
@@ -149,7 +151,6 @@ export async function flist (fpd: string, {
     - fp: path
     - options?:
         - print?: `true` (effective only delete single file)
-        - fast?: `false` use rimraf to delete quickly
 */
 export async function fdelete (fp: string, { print = true, fast = false }: { print?: boolean, fast?: boolean } = { }) {
     if (fp.length < 6) throw new Error(`${fp} too short`)
@@ -322,7 +323,11 @@ export let fwatchers: Record<string, fs.FSWatcher> = { }
     The listener callback is attached to the 'change' event fired by fs.FSWatcher, but it is not the same thing as the 'change' value of event.  
     
 */
-export async function fwatch (fp: string, onchange: (event: string, filename: string) => any, { exec = true }: { exec?: boolean } = { }) {
+export async function fwatch (
+    fp: string, 
+    onchange: (event: string, filename: string) => any,
+    { exec = true }: { exec?: boolean } = { }
+) {
     if (!path.isAbsolute(fp)) throw new Error('fp must be absolute path')
     
     const _watcher = fwatchers[fp]
@@ -355,14 +360,14 @@ export async function freplace (fp: string, pattern: string | RegExp, replacemen
     - fp: file absolute path
     - options?:
         - dryrun?: `true`
-        - encoding?: `'AUTO'`
+        - encoding?: `'auto'`
 */
 export async function f2utf8 (fp: string, {
     dryrun = true,
-    encoding = 'AUTO',
+    encoding = 'auto',
 }: {
     dryrun?: boolean
-    encoding?: Encoding | 'AUTO'
+    encoding?: Encoding | 'auto'
 } = { }) {
     const text = await fread(fp, { encoding })
     if (dryrun) {

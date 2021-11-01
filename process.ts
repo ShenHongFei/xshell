@@ -10,12 +10,14 @@ import iconv from 'iconv-lite'
 
 import './prototype'
 import { Encoding } from './file'
-import { inspect } from './utils'
+import { inspect, output_width } from './utils'
+
+export const fp_root = `${__dirname}/`.to_slash()
+
+export const exe_node = process.execPath.to_slash()
 
 
-export const EXE_NODE = process.execPath.to_slash()
-
-// ------------------------------------ Start & Call
+// ------------------------------------ start & call
 interface StartOptions {
     /** `'d:/'` */
     cwd?: string
@@ -23,7 +25,7 @@ interface StartOptions {
     /** `process.env` overwrite/add to process.env */
     env?: Record<string, string>
     
-    /** `'UTF-8'` child output encoding */
+    /** `'utf-8'` child output encoding */
     encoding?: Encoding
     
     /** `true` print option (with details) */
@@ -43,12 +45,12 @@ interface StartOptions {
 }
 
 /** start process 
-    - exe: .exe path or filename (full path is recommanded to skip PATH searching for better perf)
+    - exe: .exe path or filename (full path is recommanded to skip path searching for better perf)
     - args: `[]` arguments list
     - options
         - cwd?: `'D:/'`
         - env?: `process.env` overwrite/add to process.env
-        - encoding?: `'UTF-8'` child output encoding
+        - encoding?: `'utf-8'` child output encoding
         - print?: `true` print option (with details)
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
@@ -56,7 +58,7 @@ interface StartOptions {
 export function start (exe: string, args: string[] = [], {
     cwd = 'd:/',
     
-    encoding = 'UTF-8',
+    encoding = 'utf-8',
     
     print = true,
     
@@ -70,9 +72,11 @@ export function start (exe: string, args: string[] = [], {
     const options: SpawnOptions = {
         cwd,
         shell: false,
-        windowsHide: true,
+        windowsHide: !detached,
         stdio,
-        ... env  ?  { ...process.env, ...env }  :  { },
+        ... env ? {
+            env: { ...process.env, ...env }
+        } : { },
     }
     
     if (print)
@@ -94,14 +98,14 @@ export function start (exe: string, args: string[] = [], {
     if (stdio === 'pipe')
         child.stdin.setDefaultEncoding('utf8')
     
-    // prevent child spawn error crashing NodeJS process
+    // prevent child spawn error crashing nodejs process
     child.on('error', error => {
         console.error(error)
     })
     
     if (stdio === 'ignore') return child
     
-    if (encoding !== 'BINARY') {
+    if (encoding !== 'binary') {
         child.stdout = child.stdout.pipe(iconv.decodeStream(encoding)) as any as Readable
         child.stderr = child.stderr.pipe(iconv.decodeStream(encoding)) as any as Readable
         
@@ -136,22 +140,22 @@ export interface CallResult<T = string> {
 
 
 /** call process for result
-    - exe: .exe path or filename (full path is recommanded to skip PATH searching for better perf)
+    - exe: .exe path or filename (full path is recommanded to skip path searching for better perf)
     - args: `[]` arguments list
     - options
         - cwd?: `'d:/'`
         - env?: `process.env` overwrite/add to process.env
-        - encoding?: `'UTF-8'` child output encoding
+        - encoding?: `'utf-8'` child output encoding
         - print?: `true` print option (with details)
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
         - throw_code?: `true` whether to throw Error when code is not 0
 */
 export async function call (exe: string, args?: string[]): Promise<CallResult<string>>
-export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'BINARY', init_buffer_size?: number }): Promise<CallResult<Buffer>>
-export async function call (exe: string, args?: string[], options?: CallOptions & { encoding?: 'UTF-8' | 'GB18030' }): Promise<CallResult<string>>
+export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'binary', init_buffer_size?: number }): Promise<CallResult<Buffer>>
+export async function call (exe: string, args?: string[], options?: CallOptions & { encoding?: 'utf-8' | 'gb18030' }): Promise<CallResult<string>>
 export async function call (exe: string, args: string[] = [], {
-    encoding = 'UTF-8', 
+    encoding = 'utf-8', 
     
     print = true,
     
@@ -182,7 +186,7 @@ export async function call (exe: string, args: string[] = [], {
     let stderr: string | WritableStreamBuffer
     
     
-    if (encoding !== 'BINARY') {
+    if (encoding !== 'binary') {
         stdout = ''
         stderr = ''
         
@@ -234,15 +238,15 @@ export async function call (exe: string, args: string[] = [], {
         })
     ])
     
-    const message = `Process(${ child.pid }) '${ cmd }' exited ${ code }${ signal ? `, by signal ${ signal }` : '' }.  `
+    const message = `process(${ child.pid }) '${ cmd }' exited ${ code }${ signal ? `, by signal ${ signal }` : '' }.  `
     
     if (print_options.code || code || signal)
-        console.log(message[!code && !signal ? 'green' : 'red'].pad(global.WIDTH || 240, { character: '─' }))
+        console.log(message[!code && !signal ? 'green' : 'red'].pad(output_width, { character: '─' }))
     
     const result = {
         pid: child.pid,
-        stdout: encoding !== 'BINARY' ? (stdout as string) : ((stdout as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
-        stderr: encoding !== 'BINARY' ? (stderr as string) : ((stderr as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
+        stdout: encoding !== 'binary' ? (stdout as string) : ((stdout as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
+        stderr: encoding !== 'binary' ? (stderr as string) : ((stderr as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
         code,
         signal,
         child,
@@ -264,13 +268,13 @@ export async function call (exe: string, args: string[] = [], {
     - options
         - cwd?: `'d:/'`
         - env?: `process.env` overwrite/add to process.env
-        - encoding?: `'UTF-8'` child process output encoding
+        - encoding?: `'utf-8'` child process output encoding
         - print?: `true` print option (with details)
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
         - throw_code?: `true` whether to throw Error when code is not 0
 */
-export async function call_node (js: string, args: string[] = [], options?: CallOptions & { encoding?: 'UTF-8' | 'GB18030' }) {
-    return call(EXE_NODE, [js, ...args], options)
+export async function call_node (js: string, args: string[] = [], options?: CallOptions & { encoding?: 'utf-8' | 'gb18030' }) {
+    return call(exe_node, [js, ...args], options)
 }
 

@@ -22,26 +22,18 @@ import type { Context } from 'koa'
 
 
 import './prototype'
-import { log_section, log_module_loaded, log_line, delay, inspect } from './utils'
+import { log_section, log_line, delay, inspect, output_width } from './utils'
 import { fread, fwrite, fwatchers } from './file'
+import { fp_root } from './process.js'
 
 
 declare global {
     var __: any
     
-    var ROOT: string
-    
-    var WIDTH: number
-    
     var started_at: Date
-    
-    var server: import('./server').Server
     
     var repl_router: (ctx: Context) => Promise<boolean>
 }
-
-global.ROOT = `${__dirname}/`.to_slash()
-global.WIDTH = 240
 
 
 // ------------ inspect options
@@ -52,7 +44,7 @@ try {
 } catch {
     console.error('set util.inspect.defaultOptions.maxStringLength error')
 }
-util.inspect.defaultOptions.breakLength     = 240
+util.inspect.defaultOptions.breakLength     = output_width
 util.inspect.defaultOptions.colors          = true
 util.inspect.defaultOptions.compact         = false
 util.inspect.defaultOptions.getters         = true
@@ -93,20 +85,20 @@ const {
 } = ts
 
 
-export let INSPECTION_LIMIT    = 10000
-export let PRINTING_COMPILED_JS = false
+let inspection_limit    = 10000
+let printing_compiled_js = false
 
 
 
 export function set_inspection_limit (limit: number = 10000) {
     if (limit === -1)
         limit = 50 * 10**4
-    INSPECTION_LIMIT = limit
+    inspection_limit = limit
 }
 
 
 export function set_printing_compiled_js (enabled: boolean) {
-    PRINTING_COMPILED_JS = enabled
+    printing_compiled_js = enabled
 }
 
 
@@ -408,7 +400,7 @@ function wrap_await_stmt (statements: Statement[], code: string) {
 export async function compile_ts ({
     fp, 
     code, 
-    print = PRINTING_COMPILED_JS, 
+    print = printing_compiled_js, 
     save = false,
 }: {
     fp?: string
@@ -464,7 +456,7 @@ export let ts_options_commonjs: any
 export let ts_options_commonjs_repl: any
 
 export async function load_tsconfig () {
-    const fp = `${global.ROOT}tsconfig.json`
+    const fp = `${fp_root}tsconfig.json`
     ;({ config: { compilerOptions: ts_options } } = ts.parseConfigFileTextToJson(
         fp, 
         await fread(fp, { print: false })
@@ -507,17 +499,21 @@ export async function eval_ts (code: string) {
 }
 
 
-// ------------------------------------ REPL
+// ------------------------------------ repl
 export async function repl_code (type: string, ...args: any[]) {
-    console.log('-'.repeat(global.WIDTH))
+    console.log(
+        '-'.repeat(output_width)
+    )
     
     // --- run code
-    global.__ = await exports['eval_' + type](...args)
+    global.__ = await global['eval_' + type](...args)
     
-    log_line(global.WIDTH)
+    log_line(output_width)
     
     if (type !== 'shell')
-        console.log(inspect(global.__, { limit: INSPECTION_LIMIT }))
+        console.log(
+            inspect(global.__, { limit: inspection_limit })
+        )
     
     
     console.log('\n'.repeat(4))
@@ -526,27 +522,20 @@ export async function repl_code (type: string, ...args: any[]) {
 
 export async function start_repl () {
     // ------------ load library
-    log_section('xshell is booting ...', { timestamp: true })
+    log_section('xshell is booting ...', { time: true })
     
-    // process.env.TS_NODE_FILES = true
-    // require('ts-node/register/transpile-only')
-    // require('ts-node/register')
-    
-    
-    log_module_loaded('prototype')
-    
-    log_module_loaded('utils')
-    
-    log_module_loaded('file')
-    
-    log_module_loaded('process')
-    
-    log_module_loaded('net')
+    log_mod_loaded('prototype')
+    log_mod_loaded('utils')
+    log_mod_loaded('file')
+    log_mod_loaded('process')
+    log_mod_loaded('net')
     
     // --- prevent from exiting
-    process.on('uncaughtException', error => { console.error(error) })
+    process.on('uncaughtException', error => {
+        console.error(error)
+    })
     
-    // --- Start NodeJS REPL
+    // --- start nodejs repl
     repl.start({
         prompt: '',
         replMode: repl.REPL_MODE_SLOPPY,
@@ -555,25 +544,25 @@ export async function start_repl () {
         terminal: true,
     })
     
-    log_section('REPL initialized', { color: 'yellow', timestamp: true })
+    log_section('repl initialized', { color: 'yellow', time: true })
     
     process.title = 'xshell'
     
     await Promise.all([
-        (async () => {
-            // --- HTTP Server
-            log_section('server is initializing', { color: 'green', timestamp: true })
-            global.server = (await import('./server')).default
-            await global.server.start()
-            log_section('server initialized', { color: 'green', timestamp: true })
-        })(),
-        
         pollute_global(),
         
         load_tsconfig(),
+        
+        (async () => {
+            // --- http server
+            log_section('server is initializing', { color: 'green', time: true })
+            let { server } = await import('./server.js')
+            await server.start()
+            log_section('server initialized', { color: 'green', time: true })
+        })(),
     ])
     
-    log_section('xshell booted successfully', { color: 'red', timestamp: true })
+    log_section('xshell booted successfully', { color: 'red', time: true })
     console.log('xshell is listening at http://0.0.0.0:8421'.green)
 }
 
@@ -581,9 +570,11 @@ export async function start_repl () {
 export async function stop () {
     log_section('xshell is exiting', { color: 'red' })
     
-    Object.values(fwatchers).forEach( watcher => { watcher.close() })
+    for (const key in fwatchers)
+        fwatchers[key].close()
     
-    global.server?.stop()
+    ;(await import('./server.js'))
+        .server.stop()
 }
 
 export async function exit () {
@@ -599,7 +590,6 @@ export async function pollute_global () {
         __importStar: (mod: any) => {
             if (mod?.__esModule) return mod
             let result: { default?: any } = { }
-            // eslint-disable-next-line eqeqeq, no-eq-null
             if (mod != null)
                 for (let k in mod)
                     if (Object.hasOwnProperty.call(mod, k))
@@ -611,22 +601,42 @@ export async function pollute_global () {
     })
     
     await Promise.all([
-        import('upath'              ).then( ({ default: _default }) => { global['path'] = _default } ),
-        import('cheerio'            ).then( ({ default: _default }) => { global['cheerio'] = _default } ),
-        import('lodash/omit'        ).then( ({ default: _default }) => { global['omit'] = _default } ),
-        import('lodash/sortBy'      ).then( ({ default: _default }) => { global['sort_by'] = _default } ),
-        import('lodash/groupBy'     ).then( ({ default: _default }) => { global['group_by'] = _default } ),
+        pollute_module_default_export('upath', 'path'),
+        pollute_module_default_export('cheerio', 'cheerio'),
         
-        import('qs').then( ({ default: _default }) => { global['qs'] = _default } ),
+        pollute_module_default_export('lodash/omit.js',     'omit'),
+        pollute_module_default_export('lodash/sortBy.js',   'sort_by'),
+        pollute_module_default_export('lodash/groupBy.js',  'group_by'),
         
-        import('./prototype'           ).then( _exports => { Object.assign(global, _exports) }),
-        import('./utils'               ).then( _exports => { Object.assign(global, _exports) }),
-        import('./process'             ).then( _exports => { Object.assign(global, _exports) }),
-        import('./file'                ).then( _exports => { Object.assign(global, _exports) }),
-        import('./net'                 ).then( _exports => { Object.assign(global, _exports) }),
-        import('./repl'                ).then( _exports => { Object.assign(global, _exports) }),
+        pollute_module_default_export('qs', 'qs'),
+        
+        pollute_module_exports('./prototype.js'),
+        pollute_module_exports('./utils.js'),
+        pollute_module_exports('./process.js'),
+        pollute_module_exports('./file.js'),
+        pollute_module_exports('./net.js'),
+        pollute_module_exports('./repl.js'),
     ])
     
-    log_section('all modules were loaded', { color: 'green', timestamp: true })
+    log_section('all modules were loaded', { color: 'green', time: true })
+}
+
+
+export async function pollute_module_exports (fp_mod: string) {
+    Object.assign(
+        global,
+        await import(fp_mod)
+    )
+}
+
+export async function pollute_module_default_export (fp_mod: string, name: string) {
+    global[name] = (
+        await import(fp_mod)
+    ).default
+}
+
+
+function log_mod_loaded (id: string) {
+    console.log(`${id.pad(20)}加载完成`)
 }
 

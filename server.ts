@@ -1,20 +1,21 @@
-import { createServer as create_server } from 'http'
+import { createServer as http_create_server } from 'http'
 import type { Server as HttpServer, IncomingHttpHeaders } from 'http'
 
 import zlib from 'zlib'
 
-// --- 3-rd party
+// --- 3rd party
 import invoke from 'lodash/invoke'
 import qs from 'qs'
 
 
-// --- Koa & Koa Middleware
+// --- koa & koa middleware
 import Koa from 'koa'
 import type { Context, Next } from 'koa'
 
 import KoaCors from '@koa/cors'
 import KoaCompress from 'koa-compress'
 import { userAgent as KoaUserAgent } from 'koa-useragent'
+import type { UserAgentContext } from 'koa-useragent'
 
 
 declare module 'koa' {
@@ -25,12 +26,14 @@ declare module 'koa' {
     
     interface Context {
         compress: boolean
+        userAgent: UserAgentContext['userAgent'] & { isWechat: boolean }
     }
 }
 
-// --- My Lib
+// --- my libs
 import { request as _request } from './net'
 import { stream_to_buffer, inspect } from './utils'
+import { output_width } from './utils'
 
 
 declare module 'http' {
@@ -53,14 +56,7 @@ interface Message {
     }
 }
 
-// ------------ CONSTs
-export const LOCALHOST_IPS = new Set(['127.0.0.1', '::ffff:127.0.0.1', '::1'])
-export const ROUTER_IP     = '192.168.1.1'
-export const PHONE_IP      = '192.168.1.113'
-export const KNOWN_IPS     = new Set([...LOCALHOST_IPS, ROUTER_IP, PHONE_IP])
-
-
-// ------------ MyServer
+// ------------ my server
 export const server = {
     app: null as Koa,
     
@@ -71,43 +67,45 @@ export const server = {
     
     /** start http server and listen */
     async start () {
+        // --- init koa app
         let app = new Koa()
+        
         app.on('error', (error, ctx) => {
             console.error(error)
             console.log(ctx)
         })
         
-        app.use(this.entry.bind(this))
+        app.use(
+            this.entry.bind(this)
+        )
         
         app.use(KoaCompress({
             br: {
                 // https://nodejs.org/api/zlib.html#zlib_class_brotlioptions
                 params: {
                     [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-                    [zlib.constants.BROTLI_PARAM_QUALITY]: 6  // default 11 (maximized compression), may lead to news/get generated 14MB JSON taking 24s
+                    [zlib.constants.BROTLI_PARAM_QUALITY]: 6  // default 11 (maximized compression), may lead to news/get generated 14mb json taking 24s
                 },
             },
             threshold: 512
         }))
         
-        app.use(KoaCors({ credentials: true }))
+        app.use(
+            KoaCors({ credentials: true })
+        )
         app.use(KoaUserAgent)
         
         app.use(this.router.bind(this))
         
         this.app = app
         
-        await this.listen()
-    },
-    
-    
-    async listen () {
         this.handler = this.app.callback()
-        this.server_80  = create_server(this.handler)
         
-        await Promise.all([
-            new Promise<void>( resolve => { this.server_80.listen(8421, resolve) }),
-        ])
+        this.server_80  = http_create_server(this.handler)
+        
+        await new Promise<void>(resolve => {
+            this.server_80.listen(8421, resolve)
+        })
     },
     
     
@@ -117,8 +115,33 @@ export const server = {
     
     
     async entry (ctx: Context, next: Next) {
-        const { req: { tunnel, id }, res } = ctx
-        let { req, request } = ctx
+        let { response } = ctx
+        
+        await this.parse(ctx)
+        
+        // ------------ next
+        try {
+            await next()
+        } catch (error) {
+            if (error.status !== 404)
+                console.error(error)
+            response.status = error.status || 500
+            response.body = inspect(error, { colors: false })
+            response.type = 'text/plain'
+        }
+    },
+    
+    
+    /** 
+        parse req.body to request.body  
+        process request.ip
+    */
+    async parse (ctx: Context) {
+        const {
+            request,
+            req,
+            req: { tunnel },
+        } = ctx
         
         if (!tunnel) {
             const buf = await stream_to_buffer(req)
@@ -126,35 +149,28 @@ export const server = {
                 req.body = buf
         }
         
-        // ------------ parse req.body to request.body
-        if (req.body)
-            if (ctx.is('application/json') || ctx.is('text/plain'))
-                request.body = JSON.parse(req.body.toString())
-            else if (ctx.is('application/x-www-form-urlencoded'))
-                request.body = qs.parse(req.body.toString())
-            else if (ctx.is('multipart/form-data')) {
-                throw new Error('multipart/form-data is not supported')
-            } else
-                request.body = req.body
+        if (!req.body) return
+        
+        if (ctx.is('application/json') || ctx.is('text/plain'))
+            request.body = JSON.parse(req.body.toString())
+        else if (ctx.is('application/x-www-form-urlencoded'))
+            request.body = qs.parse(req.body.toString())
+        else if (ctx.is('multipart/form-data')) {
+            throw new Error('multipart/form-data is not supported')
+        } else
+            request.body = req.body
         
         
-        // ------------ parse request.ip
+        // --- parse request.ip
         request.ip = (request.headers['x-real-ip'] as string || request.ip).replace(/^::ffff:/, '')
-        
-        
-        // ------------ next
-        await next()
-        // ------------ post processing
     },
     
     
-    
     async router (ctx: Context, next: Next) {
-        let { request, response } = ctx
-        request.path
-        request._path = decodeURIComponent(request.path)
+        let { request, response, req } = ctx
+        const _path = request._path = decodeURIComponent(request.path)
         Object.defineProperty(request, 'path', {
-            value: request._path,
+            value: _path,
             configurable: true,
             enumerable: true,
             writable: true
@@ -162,7 +178,7 @@ export const server = {
         
         const { path }  = request
         
-        // ------------ RPC
+        // ------------ /repl/rpc
         if (path === '/api/rpc') {
             await this.rpc(ctx)
             return
@@ -176,20 +192,24 @@ export const server = {
     },
     
     
-    /** args are array http://127.0.0.1/repl/rpc?func=to_json&args=aaa&args=bbb  
+    /** args are array http://localhost/repl/rpc?func=to_json&args=aaa&args=bbb  
         should use POST when arg is number, otherwise type will be string  
         queries:
         - func: function name
         - args?: `[]` args array
-        - async?: `false` don't wait
         - ignore?: `false` don't serialize result into response
+        - async?: `false` don't wait
     */
     async rpc (ctx: Context) {
         const { request: { query, body }, response } = ctx
         
         let { func, args = [], ignore = false, async: _async = false }: { func: string, args: any[] | string, ignore: boolean | string, async: boolean | string } = { ...query, ...body }
         
-        if (!func) throw new Error('rpc no func')
+        if (!func) {
+            let error = new Error('rpc no func')
+            ;(error as any).status = 400
+            throw error
+        }
         
         if (!Array.isArray(args))
             args = [args]
@@ -218,8 +238,7 @@ export const server = {
             
             response.body = JSON.stringify(result) || ''
         } catch (error) {
-            response.status = 500
-            response.body = error
+            error.status = 500
             throw error
         }
     },
@@ -227,99 +246,97 @@ export const server = {
     
     logger (ctx: Context) {
         const { request } = ctx
-        const { query, body, path, method, req: { httpVersion, tunnel }, ip } = request
+        const {
+            query, 
+            body, 
+            path, _path, 
+            protocol,
+            host,
+            req: { httpVersion: http_version },
+            ip,
+        } = request
         
-        const known = KNOWN_IPS.has(ip)
+        let { method } = request
+        
         const ua    = ctx.userAgent
+        
         
         let s = ''
         
         // --- time
-        s += new Date().to_time_str() + '  '
+        s += `${new Date().to_time_str()}    `
         
         
-        let t: string
-        // --- IP  50
-        if (known)
-            if (LOCALHOST_IPS.has(ip))
-                t = ''
-            else if (ip === ROUTER_IP)
-                t = 'Router'.grey
-            else if (ip === PHONE_IP)
-                t = 'Phone'
-            else
-                t = ip
-        else
-            t = ip
-            
-        s += t.pad(50) + '  '
+        // --- ip
+        s += (ip || '').pad(40) + '  '
         
         
-        // --- UA
-        t = ''
-        if (!known) {
+        // --- ua
+        s += (() => {
+            let t = ''
             if (ua.isMobile)
-                t += ' Mobile'.magenta
-            if (ua.isBot)
-                t += ' Robot'.blue
+                t += 'mobile'
             if (ua.isDesktop)
-                t += ' Desktop'
+                t += 'desktop'
+            if (ua.isBot)
+                t += `${ t ? ' ' : '' }${'robot'.blue}`
             if (ua.platform !== 'unknown' && !ua.os.startsWith('Windows'))
-                t += '／'  + ua.platform
+                t += '／'  + ua.platform.toLowerCase().replace('apple mac', 'mac')
             if (ua.os       !== 'unknown' && ua.platform !== 'Android')
-                t += '／' + ua.os
+                t += '／' + ua.os.toLowerCase()
             if (ua.browser  !== 'unknown')
-                t += '／' + ua.browser
+                t += '／' + ua.browser.toLowerCase()
+            if (ua.isWechat)
+                t += '／weixin'
             if (ua.version  !== 'unknown')
-                t += '／' + ua.version
-        }
-        s += t.pad(50) + '  '
+                t += '／' + ua.version.split('.').slice(0, 2).join('.')
+            return t
+        })().pad(40) + '  '
         
         
-        // --- Tunnel/HTTP version
-        s += tunnel ? 
-            ('Tunnel/' + httpVersion).pad(10).cyan
-        :
-            ('HTTP/' + httpVersion).pad(10)
-            
-        s += '    '
+        // --- https／2.0
+        // if (req.tunnel) `tunnel／${http_version}`.pad(10).cyan
+        s += `${`${protocol.pad(5)}／${http_version}`.pad(10)}    `
         
         
-        // --- Method  8
-        if (method === 'GET')
-            t = method
-        else
-            t = method.red
-        
-        s += t.pad(8)
+        // --- method
+        method = method.toLowerCase()
+        s += method === 'get' ? method.pad(10) : method.pad(10).yellow
         
         
-        // --- Path 60
-        if (path.toLowerCase() !== request._path.toLowerCase())
-            t = request._path.blue + ' → ' + path
-        else
+        // --- host
+        s += `${host.pad(20)}  `
+        
+        
+        // --- path
+        s += (() => {
+            if (path.toLowerCase() !== _path.toLowerCase())
+                return `${_path.blue} → ${path}`
             if (!path.includes('.'))
-                t = path.yellow
+                return path.yellow
+            return path
+        })()
+        
+        
+        // --- query
+        if (Object.keys(query).length) {
+            const t = inspect(query, { compact: true }).replace('[Object: null prototype] ', '').slice(0, -1)
+            
+            if ((s + t).width > output_width)
+                s += `\n${' '.repeat(13)}    `
             else
-                t = path
-        
-        s += t.pad(60) + '  '
-        
-        
-        // --- Query
-        if (query && Object.keys(query).length) {
-            t = `    ${inspect(query, { compact: true }).replace('[Object: null prototype] ', '')}`
-            if ((s + t).width > global.WIDTH)
-                s += '\n'
+                s += '    '
+            
             s += t
         }
         
         
-        // --- Body
+        // --- body
         if (body && Object.keys(body).length)
             s += '\n' + inspect(body).replace('[Object: null prototype] ', '')
         
         
+        // --- print log
         console.log(s)
     },
 }
