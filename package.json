@@ -1,7 +1,7 @@
 {
     "name": "xshell",
-    "version": "0.0.11",
-    "main": "./extension.js",
+    "version": "0.0.12",
+    "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js"
     },
