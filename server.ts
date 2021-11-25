@@ -149,6 +149,11 @@ export const server = {
                 req.body = buf
         }
         
+        // --- parse request.ip
+        request.ip = (request.headers['x-real-ip'] as string || request.ip).replace(/^::ffff:/, '')
+        
+        
+        // --- parse body
         if (!req.body) return
         
         if (ctx.is('application/json') || ctx.is('text/plain'))
@@ -159,15 +164,11 @@ export const server = {
             throw new Error('multipart/form-data is not supported')
         } else
             request.body = req.body
-        
-        
-        // --- parse request.ip
-        request.ip = (request.headers['x-real-ip'] as string || request.ip).replace(/^::ffff:/, '')
     },
     
     
     async router (ctx: Context, next: Next) {
-        let { request, response, req } = ctx
+        let { request } = ctx
         const _path = request._path = decodeURIComponent(request.path)
         Object.defineProperty(request, 'path', {
             value: _path,
@@ -187,6 +188,10 @@ export const server = {
         
         // ------------ log
         this.logger(ctx)
+        
+        // ------------ repl_router hook
+        if (await global.repl_router?.(ctx))
+            return
         
         await next?.()
     },
@@ -258,7 +263,7 @@ export const server = {
         
         let { method } = request
         
-        const ua    = ctx.userAgent
+        const ua = ctx.userAgent
         
         
         let s = ''
@@ -320,12 +325,13 @@ export const server = {
         
         // --- query
         if (Object.keys(query).length) {
-            const t = inspect(query, { compact: true }).replace('[Object: null prototype] ', '').slice(0, -1)
+            let t = inspect(query, { compact: true })
+                .replace('[Object: null prototype] ', '')
             
-            if ((s + t).width > output_width)
-                s += `\n${' '.repeat(13)}    `
-            else
-                s += '    '
+            if (t.endsWith('\n'))
+                t = t.slice(0, -1)
+            
+            s += (s + t).width > output_width ? '\n' : '    '
             
             s += t
         }

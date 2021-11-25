@@ -314,14 +314,15 @@ function trans_return_2_expr (stmt: Statement): Statement {
 }
 
 
-function assign_var_decl (variableDeclaraion: Statement, destination: string = 'global') {
-    if (!is_var_stmt(variableDeclaraion)) return [ variableDeclaraion ]
+function assign_var_decl (var_decl: Statement, destination: string = 'global') {
+    if (!is_var_stmt(var_decl))
+        return [var_decl]
     
     // VariableDeclaration[] -> ObjectLiteral[]
     // const a = 123, b = 234, { c, d: e } = obj
     const obj_literal =
         factory.createObjectLiteralExpression(
-            variableDeclaraion.declarationList.declarations.map( declaration => 
+            var_decl.declarationList.declarations.map( declaration => 
                 is_identifier(declaration.name) ?
                     [ factory.createShorthandPropertyAssignment(declaration.name) ]
                 :  // ObjectBindingPattern
@@ -332,7 +333,7 @@ function assign_var_decl (variableDeclaraion: Statement, destination: string = '
     
     
     return [
-        variableDeclaraion,
+        var_decl,
         factory.createExpressionStatement( factory.createCallExpression(
             factory.createPropertyAccessExpression( factory.createIdentifier('Object'), 'assign'),
             [ ],
@@ -368,9 +369,9 @@ function wrap_await_stmt (statements: Statement[], code: string) {
                         undefined,
                         factory.createBlock(
                             return_last_expr(
-                                stmts.map( statement => assign_var_decl(statement)).flat()
+                                stmts.map(statement => assign_var_decl(statement)).flat()
                             )
-                        , true )
+                        , true)
                     ),
                     [ ],
                     [ ]
@@ -501,14 +502,12 @@ export async function eval_ts (code: string) {
 
 // ------------------------------------ repl
 export async function repl_code (type: string, ...args: any[]) {
-    console.log(
-        '-'.repeat(output_width)
-    )
+    log_line()
     
     // --- run code
     global.__ = await global['eval_' + type](...args)
     
-    log_line(output_width)
+    log_line()
     
     if (type !== 'shell')
         console.log(
@@ -516,7 +515,7 @@ export async function repl_code (type: string, ...args: any[]) {
         )
     
     
-    console.log('\n'.repeat(4))
+    console.log('\n'.repeat(2))
 }
 
 
@@ -615,6 +614,7 @@ export async function pollute_global () {
         pollute_module_exports('./process.js'),
         pollute_module_exports('./file.js'),
         pollute_module_exports('./net.js'),
+        pollute_module_exports('./server.js'),
         pollute_module_exports('./repl.js'),
     ])
     
@@ -637,6 +637,6 @@ export async function pollute_module_default_export (fp_mod: string, name: strin
 
 
 function log_mod_loaded (id: string) {
-    console.log(`${id.pad(20)}加载完成`)
+    console.log(`${id.pad(20)}loaded`)
 }
 

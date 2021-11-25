@@ -285,7 +285,7 @@ const color_map = Object.fromEntries(
 )
 
 // ------------------------------------ String.prototype
-Object.defineProperties( String.prototype, {
+Object.defineProperties(String.prototype, {
     ... to_getter_property_descriptors({
         width (this: string) {
             const s = strip_ansi(
@@ -860,7 +860,7 @@ Object.defineProperties(Array.prototype, {
 
 
 export function to_json (obj: any, replacer?: any) {
-    return JSON.stringify(obj, replacer, 4)
+    return JSON.stringify(obj, replacer, 4) + '\n'
 }
 
 export function to_json_safely (obj: any, replacer?: any) {

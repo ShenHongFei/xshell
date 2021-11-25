@@ -219,21 +219,37 @@ export async function fmove (src: string, dst: string, {
 
 
 /** rename file  
-    - dir?
-    - print?: `true`
-    - overwrite?: `true`  better performance without check
+    - fp:  current filename/path
+    - fp_: new filename/path
+    - options?:
+        - fpd?: fp and fp_ is in same directory
+        - print?: `true`
+        - overwrite?: `true`  better performance without check
  */
-export async function frename (fp: string, fp_: string, { dir, print = true, overwrite = true }: { dir?: string, print?: boolean, overwrite?: boolean } = { }) {
-    if (dir) {
-        fp = path.join(dir, fp)
-        fp_ = path.join(dir, fp_)
+export async function frename (
+    fp: string, 
+    fp_: string,
+    {
+        fpd,
+        print = true,
+        overwrite = true
+    }: {
+        fpd?: string
+        print?: boolean
+        overwrite?: boolean
+    } = { }
+) {
+    if (fpd) {
+        fp = path.join(fpd, fp)
+        fp_ = path.join(fpd, fp_)
     } else if (!path.isAbsolute(fp) || !path.isAbsolute(fp_))
         throw new Error('fp and fp_ must be absolute path')
     
     if (print)
         console.log('rename:', fp, '→', fp_)
     
-    if (!overwrite && fp_.fexists) throw new Error(`file already exists：${fp_}`)
+    if (!overwrite && fp_.fexists)
+        throw new Error(`file already exists：${fp_}`)
     
     await fsp.rename(fp, fp_)
 }

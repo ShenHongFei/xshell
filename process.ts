@@ -2,15 +2,11 @@ import { spawn } from 'child_process'
 import type { SpawnOptions, ChildProcess } from 'child_process'
 import { Readable, Writable } from 'stream'
 
-
-import { WritableStreamBuffer } from 'stream-buffers'
-import type { WritableStreamBufferOptions } from 'stream-buffers'
 import iconv from 'iconv-lite'
-
 
 import './prototype'
 import { Encoding } from './file'
-import { inspect, output_width } from './utils'
+import { inspect } from './utils'
 
 export const fp_root = `${__dirname}/`.to_slash()
 
@@ -48,7 +44,7 @@ interface StartOptions {
     - exe: .exe path or filename (full path is recommanded to skip path searching for better perf)
     - args: `[]` arguments list
     - options
-        - cwd?: `'D:/'`
+        - cwd?: `fp_root`
         - env?: `process.env` overwrite/add to process.env
         - encoding?: `'utf-8'` child output encoding
         - print?: `true` print option (with details)
@@ -56,7 +52,7 @@ interface StartOptions {
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
 export function start (exe: string, args: string[] = [], {
-    cwd = 'd:/',
+    cwd = fp_root,
     
     encoding = 'utf-8',
     
@@ -106,16 +102,21 @@ export function start (exe: string, args: string[] = [], {
     if (stdio === 'ignore') return child
     
     if (encoding !== 'binary') {
-        child.stdout = child.stdout.pipe(iconv.decodeStream(encoding)) as any as Readable
-        child.stderr = child.stderr.pipe(iconv.decodeStream(encoding)) as any as Readable
+        if (encoding === 'utf-8') {
+            child.stdout.setEncoding('utf-8')
+            child.stderr.setEncoding('utf-8')
+        } else {
+            child.stdout = child.stdout.pipe(
+                iconv.decodeStream(encoding)
+            ) as any as Readable
+            child.stderr = child.stderr.pipe(
+                iconv.decodeStream(encoding)
+            ) as any as Readable
+        }
         
         if (print) {
-            child.stdout.on('data', (chunk) => {
-                process.stdout.write(chunk)
-            })
-            child.stderr.on('data', (chunk) => {
-                process.stderr.write(chunk)
-            })
+            child.stdout.pipe(process.stdout, { end: false })
+            child.stderr.pipe(process.stderr, { end: false })
         }
     }
     
@@ -152,17 +153,15 @@ export interface CallResult<T = string> {
         - throw_code?: `true` whether to throw Error when code is not 0
 */
 export async function call (exe: string, args?: string[]): Promise<CallResult<string>>
-export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'binary', init_buffer_size?: number }): Promise<CallResult<Buffer>>
 export async function call (exe: string, args?: string[], options?: CallOptions & { encoding?: 'utf-8' | 'gb18030' }): Promise<CallResult<string>>
-export async function call (exe: string, args: string[] = [], {
-    encoding = 'utf-8', 
+export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'binary' }): Promise<CallResult<Buffer>>
+export async function call (exe: string, args: string[] = [], options: CallOptions = { }): Promise<CallResult<string | Buffer>> {
+    const {
+        encoding = 'utf-8', 
+        print = true,
+        throw_code = true,
+    } = options
     
-    print = true,
-    
-    init_buffer_size,
-    
-    throw_code = true,
-}: CallOptions & { init_buffer_size?: number } = { }): Promise<CallResult<string | Buffer>> {
     const print_options = typeof print === 'boolean' ?
             {
                 command: print,
@@ -179,84 +178,76 @@ export async function call (exe: string, args: string[] = [], {
     if (print_options.command)
         console.log(cmd.blue)
     
-    let child = start(exe, args, Object.assign(arguments[2] || { }, { print: false }))
+    options.print = false
+    
+    let child = start(exe, args, options)
+    
     
     // --- collect output
-    let stdout: string | WritableStreamBuffer
-    let stderr: string | WritableStreamBuffer
-    
-    
-    if (encoding !== 'binary') {
-        stdout = ''
-        stderr = ''
-        
-        child.stdout.on('data', chunk => {
-            if (print_options.stdout)
-                process.stdout.write(chunk)
-            
-            stdout += chunk
-        })
-        
-        child.stderr.on('data', chunk => {
-            if (print_options.stderr)
-                process.stderr.write(chunk)
-            
-            stderr += chunk
-        })
-    } else {
-        const stream_buffer_options: WritableStreamBufferOptions = init_buffer_size ? {
-            initialSize: init_buffer_size,
-            incrementAmount: init_buffer_size,
-        } : { }
-        
-        stdout = new WritableStreamBuffer(stream_buffer_options)
-        stderr = new WritableStreamBuffer(stream_buffer_options)
-        
-        if (print_options.stdout)
-            child.stdout.pipe(stdout as WritableStreamBuffer)
-        if (print_options.stderr)
-            child.stderr.pipe(stderr as WritableStreamBuffer)
-    }
-    
+    let stdouts: (string | Buffer)[] = [ ]
+    let stderrs: (string | Buffer)[] = [ ]
     
     let code: number | null, 
         signal: NodeJS.Signals
     
     await Promise.all([
-        new Promise<void>( resolve => {
-            child.stdout.on('end', () => { resolve() })
-        }),
-        new Promise<void>( resolve => {
-            child.stderr.on('end', () => { resolve() })
-        }),
-        new Promise<void>( resolve => {
-            child.on('exit', (_code, _signal: NodeJS.Signals) => {
+        new Promise<void>(resolve => {
+            child.on('exit', (_code, _signal) => {
                 code = _code
                 signal = _signal
                 resolve()
             })
-        })
+        }),
+        (async () => {
+            for await (const chunk of child.stdout as AsyncIterable<string | Buffer>) {
+                if (encoding !== 'binary' && print_options.stdout)
+                    process.stdout.write(chunk)
+                stdouts.push(chunk)
+            }
+        })(),
+        (async () => {
+            for await (const chunk of child.stderr as AsyncIterable<string | Buffer>) {
+                if (encoding !== 'binary' && print_options.stderr)
+                    process.stderr.write(chunk)
+                stderrs.push(chunk)
+            }
+        })()
     ])
     
-    const message = `process(${ child.pid }) '${ cmd }' exited ${ code }${ signal ? `, by signal ${ signal }` : '' }.  `
+    const message = `process(${ child.pid }) '${ cmd }' exited ${ code }${ signal ? `, by signal ${ signal }` : '' }.`
     
     if (print_options.code || code || signal)
-        console.log(message[!code && !signal ? 'green' : 'red'].pad(output_width, { character: '─' }))
+        console.log(message[code || signal ? 'red' : 'blue'])
     
     const result = {
         pid: child.pid,
-        stdout: encoding !== 'binary' ? (stdout as string) : ((stdout as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
-        stderr: encoding !== 'binary' ? (stderr as string) : ((stderr as WritableStreamBuffer).getContents() || Buffer.alloc(0)),
+        
+        stdout: encoding === 'binary' ?
+            Buffer.concat(stdouts as Buffer[])
+        :
+            (stdouts as string[]).join(''),
+        
+        stderr: encoding === 'binary' ?
+            Buffer.concat(stderrs as Buffer[])
+        :
+            (stderrs as string[]).join(''),
+        
         code,
+        
         signal,
+        
         child,
+        
         [inspect.custom] () {
             return inspect(this, { omit: ['child'] })
         }
     }
     
     if (code && throw_code)
-        throw Object.assign(new Error(message), result)
+        throw Object.assign(
+            new Error(message), 
+            result
+        )
     
     return result
 }

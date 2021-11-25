@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        // --- Module
+        // --- module
         "module": "CommonJS", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
         "moduleResolution": "Node",
         "allowSyntheticDefaultImports": true,
@@ -8,7 +8,7 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
         
-        // --- Build
+        // --- build
         "target": "ES2019",
         "allowJs": false,
         "checkJs": false,
@@ -21,18 +21,18 @@
         "tsBuildInfoFile": "./node_modules/.tsbuildinfo",
         
         
-        // --- Emit
+        // --- emit
         "declaration": true,
         "emitDeclarationOnly": false,
         "noEmitOnError": false,
         "listEmittedFiles": true,
         
-        // --- Source Maps
+        // --- source maps
         "sourceMap": true,
         "inlineSourceMap": false,
         "inlineSources": true,
         
-        // --- Features
+        // --- features
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "preserveSymlinks": true,
@@ -42,7 +42,7 @@
         "forceConsistentCasingInFileNames": true,
         
         
-        // --- Type Checking
+        // --- type checking
         "strict": false,
         "alwaysStrict": false,
         "noImplicitAny": false,

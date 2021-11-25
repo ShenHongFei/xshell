@@ -254,7 +254,7 @@ export async function request (url: string | URL, {
         
         error[inspect.custom] = () => {
             let s = '─'.repeat(output_width / 2) + '\n' +
-                `${name.red} ${(method || 'get').blue} ${String(url || uri).blue.underline}\n`
+                `${(method || 'get').toLowerCase().red} ${String(url || uri).blue.underline}\n`
             
             if (qs)
                 s += `\n${'request.query:'.blue}\n` +

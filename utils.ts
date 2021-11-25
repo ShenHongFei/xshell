@@ -95,6 +95,33 @@ export function strcmp (l: string, r: string) {
 }
 
 
+/** 拼接 TypedArrays 生成一个完整的 Uint8Array */
+export function concat (views: ArrayBufferView[]) {
+    let length = 0
+    for (const v of views)
+        length += v.byteLength
+        
+    let buf = new Uint8Array(length)
+    let offset = 0
+    for (const v of views) {
+        const uint8view = new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+        buf.set(uint8view, offset)
+        offset += uint8view.byteLength
+    }
+    
+    return buf
+}
+
+
+export function typed_array_to_buffer (view: ArrayBufferView) {
+    return Buffer.from(
+        view.buffer,
+        view.byteOffset,
+        view.byteLength
+    )
+}
+
+
 // ------------------------------------ log: module loaded, section, line
 export function log_section (
     message: string, 
@@ -102,28 +129,24 @@ export function log_section (
         time = false,
         timestamp = false,
         color = undefined,
-        left_width = 30,
-        full_width = 110
     }: {
         time?: boolean
         timestamp?: boolean | Date
         color?: 'green' | 'red' | 'yellow'
-        left_width?: number
-        full_width?: number
     } = { }
 ) {
     const stime = (() => {
         if (time)
-            return ` [${String(new Date().getTime() - global.started_at.getTime()).pad(4, { position: 'left' })} ms]`
+            return `[${String(new Date().getTime() - global.started_at.getTime()).pad(4, { position: 'left' })} ms]`
         if (timestamp)
             if (typeof timestamp === 'object')
-                return ` [${timestamp.to_str()}]`
+                return `[${timestamp.to_str()}]`
             else
-                return ` [${new Date().to_str()}]`
+                return `[${new Date().to_str()}]`
         return ''
     })()
     
-    message = `${'-'.repeat(left_width)}${stime} ${message} `.pad(full_width, { character: '-' })
+    message = `${stime.pad(20)}${message}`
     
     if (color)
         message = message[color]
@@ -132,9 +155,8 @@ export function log_section (
 }
 
 
-/** '─' === '\u2500' */
-export function log_line (width: number = output_width) {
-    console.log('─'.repeat(width / 2))
+export function log_line () {
+    console.log('---')
 }
 
 
@@ -187,7 +209,26 @@ export namespace inspect {
 // ------------------------------------ Steam
 export async function stream_to_buffer (stream: Readable) {
     let chunks = [ ]
-    for await (const chunk of stream)
+    for await (const chunk of stream as AsyncIterable<Buffer>)
         chunks.push(chunk)
     return Buffer.concat(chunks)
 }
+
+
+export async function * stream_to_lines (stream: Readable) {
+    let buf = ''
+    for await (const chunk of stream as AsyncIterable<string>) {
+        let i = 0, j = 0
+        for (;  (i = chunk.indexOf('\n', j)) >= 0;  ) {
+            let line = chunk.slice(j, i)
+            if (buf) {
+                line = buf + line
+                buf = ''
+            }
+            j = i + 1
+            yield line
+        }
+        buf = chunk.slice(j)
+    }
+}
+
