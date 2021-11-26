@@ -1,11 +1,17 @@
-import { createServer as http_create_server } from 'http'
-import type { Server as HttpServer, IncomingHttpHeaders } from 'http'
+import {
+    createServer as http_create_server,
+    type Server as HttpServer,
+} from 'http'
 
 import zlib from 'zlib'
+import { default as nodefs, type Stats } from 'fs'
+import { promisify } from 'util'
 
 // --- 3rd party
+import upath from 'upath'
 import invoke from 'lodash/invoke'
 import qs from 'qs'
+import resolve_safely from 'resolve-path'
 
 
 // --- koa & koa middleware
@@ -14,8 +20,10 @@ import type { Context, Next } from 'koa'
 
 import KoaCors from '@koa/cors'
 import KoaCompress from 'koa-compress'
-import { userAgent as KoaUserAgent } from 'koa-useragent'
-import type { UserAgentContext } from 'koa-useragent'
+import {
+    userAgent as KoaUserAgent,
+    type UserAgentContext
+} from 'koa-useragent'
 
 
 declare module 'koa' {
@@ -32,8 +40,8 @@ declare module 'koa' {
 
 // --- my libs
 import { request as _request } from './net'
-import { stream_to_buffer, inspect } from './utils'
-import { output_width } from './utils'
+import { stream_to_buffer, inspect, output_width } from './utils'
+import { ufs, type UFS } from './file'
 
 
 declare module 'http' {
@@ -45,14 +53,6 @@ declare module 'http' {
     
     interface ServerResponse {
         body?: Buffer
-    }
-}
-
-interface Message {
-    id: string
-    headers: IncomingHttpHeaders
-    body: {
-        buffer: Buffer
     }
 }
 
@@ -345,6 +345,177 @@ export const server = {
         // --- print log
         console.log(s)
     },
+    
+    
+    async try_send (
+        ctx: Context, 
+        fp: string,
+        {
+            fs = ufs, 
+            root
+        }: {
+            fs?: (typeof nodefs) | UFS
+            root: string
+    }) {
+        const {
+            request: { _path, path, method },
+            response,
+        } = ctx
+        
+        if (!(typeof response.body === 'undefined') || response.status !== 404) return true
+        
+        if (method !== 'HEAD' && method !== 'GET') return false
+        
+        function log_404 () {
+            let s = `${' '.repeat(13)}    ${method.toLowerCase()} 404: ${path}`
+            if (_path !== path)
+                s += ` ${_path.bracket()}`
+            console.log(s.red)
+        }
+        
+        try {
+            await this.fsend(ctx, fp, { fs, root })
+            return true
+        } catch (error) {
+            if (error.status !== 404) throw error
+            log_404()
+            return false
+        }
+    },
+    
+    
+    /** send file at `path` with the  given `options` to the koa `ctx`. */
+    async fsend (
+        ctx: Context,
+        path: string,
+        {
+            fs = nodefs,
+            root,
+            absolute
+        }: {
+            /** `fs` */
+            fs?: (typeof nodefs) | UFS
+            
+            root?: string
+            
+            /** `false` */
+            absolute?: boolean
+            
+        } = { } as any
+    ) {
+        const { request, response, req } = ctx
+        
+        if (!absolute && !root)
+            throw new Error('fsend with `!absolute && !root`')
+        
+        if (absolute)
+            path = upath.resolve(path)
+        else {
+            if (path.startsWith(root))
+                path = path.slice(root.length)
+            
+            if (path.startsWith('/'))
+                path = path.slice(1)
+            
+            try {
+                path = upath.normalize(
+                    resolve_safely(root, path)
+                )
+            } catch (error) {
+                error.message += `, path = ${path}`
+                throw error
+            }
+        }
+        
+        
+        // stat
+        let stats: Stats
+        try {
+            stats = await promisify(fs.stat)(path)
+        } catch (error) {
+            if (['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'].includes(error.code)) {
+                error.status = 404
+                throw error
+            }
+            
+            error.status = 500
+            error.message = `fs.stat 出错: ${error.message}`
+            throw error
+        }
+        
+        
+        if (stats.size >= 100 * 2**20) {
+            let error = new Error('body.length >= 100 mb')
+            ;(error as any).status = 500
+            throw error
+        }
+        
+        
+        if (!req.tunnel) {
+            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Ranges
+            // advertise server support of partial requests
+            response.set('accept-ranges', 'bytes')
+        }
+        
+        if (!response.get('cache-control'))
+            response.set('cache-control', 'max-age=0, must-revalidate')
+        
+        if (!response.get('last-modified'))
+            response.set('last-modified', stats.mtime ? stats.mtime.toUTCString() : new Date().toUTCString())
+        
+        const fext = path.fext
+        
+        if (!response.type)
+            response.type = fext
+        
+        if (fext === '.pdf')
+            response.set('content-disposition', `attachment; filename="${encodeURIComponent(path.fname)}"`)
+        
+        if (request.fresh) {
+            response.status = 304
+            // 以上会自动设置 response.body = null
+            return path
+        }
+        
+        if (request.headers.range) {
+            if (req.tunnel) {
+                response.status = 400
+                response.body = ''
+                return
+            }
+            
+            try {
+                const range_header = request.headers.range
+                const range_value = /=(.*)$/.exec(range_header)[1]
+                const range = /^[\w]*?(\d*)-(\d*)$/.exec(range_value)
+                
+                let start = range[1] ? parseInt(range[1]) : undefined
+                let end   = range[2] ? parseInt(range[2]) : stats.size - 1
+                
+                if (typeof start == 'undefined') {
+                    start = (stats.size - end)
+                    end = (stats.size - 1)
+                }
+                
+                const chunksize = (end - start + 1)
+                
+                response.status = 206
+                response.set('content-length', String(chunksize))
+                response.set('content-range', `bytes ${start}-${end}/${stats.size}`)
+                response.body = fs.createReadStream(path, { start, end })
+            } catch (err) {
+                response.status = 416
+                response.set('content-length', String(stats.size))
+                response.set('content-range', `bytes */${stats.size}`)
+                response.body = fs.createReadStream(path)
+            }
+        } else {
+            response.set('content-length', String(stats.size))
+            response.body = fs.createReadStream(path)
+        }
+        
+        return path
+    }
 }
 
 

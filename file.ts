@@ -10,11 +10,32 @@ import rimraf from 'rimraf'
 import debounce from 'lodash/debounce'
 
 
+import MFS from 'memfs'
+declare module 'memfs' {
+    interface IFs {
+        join: typeof path.join
+    }
+}
+
 import { to_json } from './prototype'
 import { dedent } from './utils'
+export * from './ufs'
 
+export { MFS }
 
 export type Encoding = 'utf-8' | 'gb18030' | 'shift-jis' | 'binary'
+
+
+export function create_mfs () {
+    return mfs = Object.assign(
+        MFS.createFsFromVolume(
+            new MFS.Volume()
+        ), 
+        { join: path.join.bind(path) }
+    )
+}
+
+export let mfs: MFS.IFs & { join: typeof path.join }
 
 
 export async function fread (fp: string): Promise<string>
