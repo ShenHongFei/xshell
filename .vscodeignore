@@ -1,7 +1,14 @@
+node_modules/
+
+!extension.js
+!extension.js.map
 *.ts
-!*.d.ts
+*.d.ts
 *.pptx
 *.vsix
+*.js
+*.map
+*.sass
 
 .gitignore
 .npmignore

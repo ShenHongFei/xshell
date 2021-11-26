@@ -1,6 +1,6 @@
 {
     "name": "xshell",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js"
@@ -106,6 +106,8 @@
         "@types/rimraf": "^3.0.2",
         "@types/stream-buffers": "^3.0.4",
         "@types/tampermonkey": "^4.0.5",
-        "@types/vscode": "^1.62.0"
+        "@types/vscode": "^1.62.0",
+        "source-map-loader": "^3.0.0",
+        "ts-loader": "^9.2.6"
     }
 }

@@ -13,4 +13,6 @@ node_modules/
 /desktop.ini
 /.npmrc
 /package-lock.json
-
+/extension.js
+/extension.js.map
+/extension.d.ts
