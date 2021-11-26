@@ -13,3 +13,5 @@ node_modules/
 /desktop.ini
 /.npmrc
 /package-lock.json
+
+!/*.browser.ts
