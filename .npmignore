@@ -1,18 +1,25 @@
 node_modules/
 
 *.ts
+*.tsx
 !*.d.ts
 *.pptx
 *.vsix
+
+desktop.ini
+tsconfig.json
+dict.json
 
 /.gitignore
 /.npmignore
 /.vscodeignore
 /xshell.png
 /xshell.ico
-/desktop.ini
 /.npmrc
 /package-lock.json
 /extension.js
 /extension.js.map
 /extension.d.ts
+
+/i18n/assets/
+/i18n/test/

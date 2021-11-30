@@ -5,3 +5,7 @@ node_modules
 *.map
 *.vsix
 *.d.ts
+
+/i18n/test/*.json
+/i18n/test/i18n
+/i18n/test/source
