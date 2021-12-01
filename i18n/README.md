@@ -169,7 +169,7 @@ function TestTrans () {
 
 ## 词条扫描以及更新翻译的方法
 ### 整体流程
-![i18n-arch.png](https://cos.shenhongfei.com/assets/i18n-arch.png)
+![xsh-i18n-arch.png](https://cos.shenhongfei.com/assets/xsh-i18n-arch.png)
 
 ### 词条标记
 #### 词条标记文档  
@@ -208,21 +208,13 @@ npm i eslint eslint-plugin-i18n --save-dev
 
 3. 使用 `npm run scan` 扫描词条，会创建或修改 `./i18n/` 下的:  
    ① `scanneds.json` 代码中扫描到的词条及其翻译 (仅本次 --input 所包含代码中的词条及翻译)  
-   ② `source/zh.json`, `source/en.json`, ... (`scanneds.json` 对应的 tea 词条格式，可提交到翻译仓库交由翻译团队翻译)  
-   ③ `dict.json` 完整的词典文件 (历史所有词条词条及翻译，会被打包到代码中在运行时决定词条翻译)  
+   ② `dict.json` 完整的词典文件 (历史所有词条词条及翻译，会被打包到代码中在运行时决定词条翻译)  
 
-4. 补齐 `scanneds.json` 中的翻译，可以选择下面两种方法之一补充翻译：
-    - 【方法一】交由翻译团队翻译：将 `source/zh.json` 等文件提交到翻译仓库 https://git.woa.com/intl-platform/intl-console-translation ，并创建 TAPD 单，待 `en.json`, 等翻译返回后放到 `source/` 中覆盖原来的文件  
-        - 自动化提交翻译词条配置可以参考文档 http://tapd.oa.com/tcp_access/markdown_wikis/show/#1220399462000786583  
-        - 配置完成后先运行 `npm run dict-pull` 拉取仓库中的词条翻译到本地  
-        - 再运行 `npm run scan` 生成待翻译词条  
-        - 最后运行 `npm run dict-push -- --lang en` 上传待翻译词条到仓库，提交 TAPD 单等待翻译团队翻译词条  
-        - 翻译团队完成翻译后再将词条拉取到本地 `npm run dict-pull`  
-    - 【方法二】手动补充词条翻译：手动补全扫描结果 `scanneds.json` 中未翻译的词条  
+4. 补齐 `scanneds.json` 中的翻译
 
-5. 通过以上 `"4."` 步骤补充翻译后重新运行扫描 `npm run scan`，这次扫描会自动根据 `source/en.json` 以及 `scanneds.json` 更新 `dict.json`。最终构建时 `dict.json` 内的词条会被打包进 js, 通过 i18n.init(<dict.json>) 加载
+5. 通过以上 `"4."` 步骤补充翻译后重新运行扫描 `npm run scan`，这次扫描会自动根据 `scanneds.json` 更新 `dict.json`。最终构建时 `dict.json` 内的词条会被打包进 js, 通过 `new I18N(<dict.json>)` 或 `i18n.init(<dict.json>)` 加载
 
-![i18n-scan.png](https://cos.shenhongfei.com/assets/i18n-scan.png)
+![xsh-i18n-scan.png](https://cos.shenhongfei.com/assets/xsh-i18n-scan.png)
 
 
 ### 词典文件 dict.json 格式

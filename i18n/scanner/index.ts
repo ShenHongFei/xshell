@@ -399,7 +399,7 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                     console.log('通过以上方法补充翻译后重新运行扫描，会根据 scanneds.json 更新 dict.json'.yellow)
                     console.log('最后 dict.json 所包含的词条会被打包进 js, 通过 new I18N(<dict.json>) 或 i18n.init(<dict.json>) 加载'.yellow)
                     console.log()
-                    console.log(`${'详细文档请查看：'.yellow} ${'https://github.com/ShenHongFei/xshell/i18n'.blue.underline}`)
+                    console.log(`${'详细文档请查看：'.yellow} ${'https://github.com/ShenHongFei/xshell/tree/master/i18n'.blue.underline}`)
                     
                     cb()
                 }

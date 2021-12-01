@@ -21,7 +21,7 @@ declare global {
 
 /**
     提供翻译文本功能，在浏览器环境下自动解析当前语言、国际/国内用户
-    @see https://github.com/ShenHongFei/xshell/i18n/
+    @see https://github.com/ShenHongFei/xshell/tree/master/i18n
 */
 export class I18N {
     static LANGUAGE_REGEXP = /^(zh|en|ja|jp|ko)$/
@@ -55,7 +55,7 @@ export class I18N {
         const i18n = new I18N(dict)        // 创建实例，传入词典 dict 并自动判断当前语言（浏览器环境），
         const i18n = new I18N({ })         // 创建实例，传入空词典
         ```
-        @see https://github.com/ShenHongFei/xshell/i18n/
+        @see https://github.com/ShenHongFei/xshell/tree/master/i18n
     */
     constructor (_dict: _Dict, language?: Language) {
         const is_browser = typeof document !== 'undefined' && typeof window !== 'undefined'

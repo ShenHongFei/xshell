@@ -46,9 +46,6 @@ export function Test () {
     
     t('联系我们')
     t('联系我们', { context: 'button' })
-    t('按量计费')
-    t('按量计费', { count: 3 })
-    t('按量计费', { context: 'button' })
     
     t('找不到的')
     
