@@ -7,7 +7,6 @@ node_modules/
 *.vsix
 
 desktop.ini
-tsconfig.json
 dict.json
 
 /.gitignore
