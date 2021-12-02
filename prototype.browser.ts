@@ -559,23 +559,40 @@ Object.defineProperties(String.prototype, {
 // ------------------------------------ Date.prototype
 Object.defineProperties(Date.prototype, to_method_property_descriptors({
     to_str (this: Date) {
-        return this.toLocaleString().replace(/(\d+)\/(\d+)\/(\d+) ?(上午|下午)(\d+):(\d{2}):(\d{2}).*/, (matches, year, month, day, ampm, hour, minute, second) => {
-            hour = Number(hour)
-            if (ampm === '上午' && hour === 12) {
-                hour = 0
-                ampm = '凌晨'
-            }
-            else if (ampm === '上午' && hour <= 6)   ampm = '凌晨'
-            else if (ampm === '上午' && hour <= 8 )  ampm = '早上'
-            else if (ampm === '上午' && hour <= 10)  ampm = '上午'
-            else if (ampm === '上午' && hour <= 11)  ampm = '中午'
-            else if (ampm === '下午' && hour === 12) ampm = '中午'
-            else if (ampm === '下午' && hour <= 5 )  ampm = '下午'
-            else ampm = '晚上'
+        const [ampm, hour] = (() => {
+            let hour = this.getHours()
+            if (hour <= 6)
+                return ['凌晨', hour]
             
-            return  year + '.' + month.pad(2, { character: '0', position: 'left' }) + '.' + day.pad(2, { character: '0', position: 'left' }) + ' ' + 
-                    ampm + ' ' + hour.toString().pad(2, { character: '0', position: 'left' }) + ':' + minute + ':' + second
-        })
+            if (hour <= 8)
+                return ['清晨', hour]
+                
+            if (hour <= 9)
+                return ['早上', hour]
+                
+            if (hour <= 10)
+                return ['上午', hour]
+                
+            if (hour <= 12)
+                return ['中午', hour]
+                
+            hour -= 12
+            
+            if (hour <= 5)
+                return ['下午', hour]
+                
+            if (hour <= 10)
+                return ['晚上', hour]
+                
+            return ['深夜', hour]
+        })()
+        
+        
+        return '' +
+            // year.month.date
+            `${this.getFullYear()}.${String(this.getMonth() + 1).pad(2, { character: '0', position: 'left' })}.${String(this.getDate()).pad(2, { character: '0', position: 'left' })} ` +
+            // 上午 10:03:02
+            `${ampm} ${String(hour).pad(2, { character: '0', position: 'left' })}:${String(this.getMinutes()).pad(2, { character: '0', position: 'left' })}:${String(this.getSeconds()).pad(2, { character: '0', position: 'left' })}`
     },
     
     to_date_str (this: Date) {
@@ -584,7 +601,7 @@ Object.defineProperties(Date.prototype, to_method_property_descriptors({
     
     to_time_str (this: Date) {
         const [, ampm, time ] = this.to_str().split(' ')
-        return ampm + ' ' + time
+        return `${ampm} ${time}`
     },
 }))
 

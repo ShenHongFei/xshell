@@ -5,18 +5,19 @@ import process from 'process'
 import fs from 'fs'
 
 
-import ts from 'typescript'
-import type {
-    SourceFile,
-    Node,
-    Statement, 
-    Modifier,
-    SyntaxKind as TSyntaxKind,
-    Identifier,
-    StringLiteral,
-    ExpressionStatement,
-    ObjectBindingPattern,
-    BindingElement,
+
+import {
+    default as ts,
+    type SourceFile,
+    type Node,
+    type Statement, 
+    type Modifier,
+    type SyntaxKind as TSyntaxKind,
+    type Identifier,
+    type StringLiteral,
+    type ExpressionStatement,
+    type ObjectBindingPattern,
+    type BindingElement,
 } from 'typescript'
 
 import type { Context } from 'koa'

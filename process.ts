@@ -1,12 +1,15 @@
-import { spawn } from 'child_process'
-import type { SpawnOptions, ChildProcess } from 'child_process'
-import { Readable, Writable } from 'stream'
+import {
+    spawn,
+    type SpawnOptions,
+    type ChildProcess
+} from 'child_process'
+import { Readable } from 'stream'
 
 import iconv from 'iconv-lite'
 
-import './prototype'
-import { Encoding } from './file'
-import { inspect } from './utils'
+import './prototype.js'
+import { Encoding } from './file.js'
+import { inspect } from './utils.js'
 
 export const fp_root = `${__dirname}/`.to_slash()
 

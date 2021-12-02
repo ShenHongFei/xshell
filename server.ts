@@ -4,19 +4,25 @@ import {
 } from 'http'
 
 import zlib from 'zlib'
-import { default as nodefs, type Stats } from 'fs'
+import {
+    default as nodefs,
+    type Stats
+} from 'fs'
 import { promisify } from 'util'
 
 // --- 3rd party
 import upath from 'upath'
-import invoke from 'lodash/invoke'
+import invoke from 'lodash/invoke.js'
 import qs from 'qs'
 import resolve_safely from 'resolve-path'
 
 
 // --- koa & koa middleware
-import Koa from 'koa'
-import type { Context, Next } from 'koa'
+import {
+    default as Koa,
+    type Context,
+    type Next
+} from 'koa'
 
 import KoaCors from '@koa/cors'
 import KoaCompress from 'koa-compress'
@@ -39,9 +45,9 @@ declare module 'koa' {
 }
 
 // --- my libs
-import { request as _request } from './net'
-import { stream_to_buffer, inspect, output_width } from './utils'
-import { ufs, type UFS } from './file'
+import { request as _request } from './net.js'
+import { stream_to_buffer, inspect, output_width } from './utils.js'
+import { ufs, type UFS } from './file.js'
 
 
 declare module 'http' {

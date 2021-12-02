@@ -1,9 +1,14 @@
-import request_lib from 'request'
-import type { OptionsWithUri, OptionsWithUrl } from 'request'
+import {
+    default as request_lib,
+    type OptionsWithUri,
+    type OptionsWithUrl
+} from 'request'
 
-import request_promise from 'request-promise-native'
-import type { FullResponse } from 'request-promise-native'
-import { RequestError, StatusCodeError } from 'request-promise-native/errors'
+import {
+    default as request_promise,
+    type FullResponse,
+} from 'request-promise-native'
+import { RequestError, StatusCodeError } from 'request-promise-native/errors.js'
 
 import promise_retry from 'promise-retry'
 
@@ -19,9 +24,9 @@ declare module 'tough-cookie' {
 }
 
 
-import './prototype'
-import type { Encoding } from './file'
-import { inspect, output_width } from './utils'
+import './prototype.js'
+import type { Encoding } from './file.js'
+import { inspect, output_width } from './utils.js'
 
 export enum MyProxy {
     socks5 = 'http://localhost:10080',
