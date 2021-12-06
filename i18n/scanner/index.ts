@@ -30,6 +30,8 @@ const DEFAULT_CONFIG = {
     input: [
         // 'src/**/*.{js,jsx,ts,tsx}',
         '!i18n/**',  // Use ! to filter out files or directories
+        '!node_modules/**',
+        '!**/*.d.ts',
     ],
     
     // 相对于根目录
@@ -131,7 +133,11 @@ export type Config = Partial<(typeof DEFAULT_CONFIG) & {
 */
 export function scanner (rootdir: string = path.normalize(process.cwd()), config: Config = { }) {
     const output = path.resolve(rootdir, config.output || DEFAULT_CONFIG.output)
-    const input  = (config.input || DEFAULT_CONFIG.input).map( fp => path.resolve(rootdir, fp) )
+    
+    if (!config.input.length)
+        throw new Error('运行 i18n-scan 请指定 --input')
+    
+    const input  = [...config.input, ...DEFAULT_CONFIG.input]
     
     config = {
         ...DEFAULT_CONFIG,

@@ -15,7 +15,9 @@ program.name('i18n-scan')
 
 const { rootdir, config, input, output } = program.opts()
 scanner(rootdir, {
-    ... try_require( path.resolve(rootdir, config) ),
+    ... try_require(
+        path.resolve(rootdir, config)
+    ),
     ... input  ?  { input }   :  { },
     ... output ?  { output }  :  { },
 })
