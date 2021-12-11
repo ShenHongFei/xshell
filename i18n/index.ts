@@ -68,7 +68,7 @@ export class I18N {
             const queries = qs.parse(search, { ignoreQueryPrefix: true })
             
             if (!language) {
-                const lquery   = (queries.language || queries.lang) as string  // 暂时不考虑是数组的情况
+                const lquery   = queries.language as string  // 暂时不考虑是数组的情况
                 const lwindow  = window.language
                 const lbrowser = typeof navigator !== 'undefined' && navigator.language.slice(0, 2)
                 
