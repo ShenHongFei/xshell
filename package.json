@@ -1,6 +1,6 @@
 {
     "name": "xshell",
-    "version": "0.0.24",
+    "version": "0.0.25",
     "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js",
@@ -17,7 +17,7 @@
     "type": "commonjs",
     "engines": {
         "node": ">=17.1.0",
-        "vscode": ">=1.62.0"
+        "vscode": ">=1.63.0"
     },
     "scripts": {
         "start": "node --title=xshell --inspect=0.0.0.0:8420 ./xshell.js",
