@@ -358,10 +358,12 @@ export const server = {
         fp: string,
         {
             fs = ufs, 
-            root
+            root,
+            log_404,
         }: {
             fs?: (typeof nodefs) | UFS
             root: string
+            log_404?: boolean
     }) {
         const {
             request: { _path, path, method },
@@ -372,7 +374,7 @@ export const server = {
         
         if (method !== 'HEAD' && method !== 'GET') return false
         
-        function log_404 () {
+        function _log_404 () {
             let s = `${' '.repeat(13)}    ${method.toLowerCase()} 404: ${path}`
             if (_path !== path)
                 s += ` ${_path.bracket()}`
@@ -384,7 +386,8 @@ export const server = {
             return true
         } catch (error) {
             if (error.status !== 404) throw error
-            log_404()
+            if (log_404)
+                _log_404()
             return false
         }
     },
