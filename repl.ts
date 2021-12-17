@@ -349,9 +349,9 @@ function assign_var_decl (var_decl: Statement, destination: string = 'global') {
 function return_last_expr (statements: Statement[]) {
     if (!statements.length) return statements
     
-    const lastExpression = get_expr_of_stmt(statements.last)
-    if (is_expr_stmt(lastExpression))
-        return [ ...statements.slice(0, -1), factory.createReturnStatement(lastExpression.expression) ]
+    const last_expr = get_expr_of_stmt(statements.last)
+    if (is_expr_stmt(last_expr))
+        return [ ...statements.slice(0, -1), factory.createReturnStatement(last_expr.expression) ]
     else
         return statements
 }

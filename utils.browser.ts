@@ -23,3 +23,11 @@ export function concat (arrays: ArrayBufferView[]) {
     
     return buf
 }
+
+
+/** 字符串字典序比较 */
+export function strcmp (l: string, r: string) {
+    if (l === r) return 0
+    if (l < r)   return -1
+    return 1
+}

@@ -78,7 +78,7 @@ declare global {
             
             pattern_placeholder?: RegExp
         
-        ): { [name: string]: string }
+        ): Record<string, string>
         
         
         /** - type?: `'single'` */
@@ -481,7 +481,7 @@ Object.defineProperties(String.prototype, {
             preservations: string = '', 
             flags = '', 
             pattern_placeholder = /\{.*?\}/g
-        ): { [name: string]: string } {
+        ): Record<string, string> {
             // --- convert pattern to pattern_regx
             let last_end = 0
             
