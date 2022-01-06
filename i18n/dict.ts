@@ -10,10 +10,18 @@ export class Dict {
     get (key: string): Item | undefined
     get (key: string, language: Language): string | ''
     get (key: string, language?: Language) {
-        if (!key) return ''
+        if (!key)
+            return ''
+        
         const item = this._dict[key]
-        if (!item || !language) return item || ''
-        return item[language] || ''
+        
+        if (language)
+            return item ?
+                    item[language] || ''
+                :
+                    ''
+        
+        return item
     }
     
     to_resources () {

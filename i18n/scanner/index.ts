@@ -38,7 +38,7 @@ const DEFAULT_CONFIG = {
     output: 'i18n/',
     
     // 若是相对路径，则以 output 为基准进行解析
-    dict: ['dict.json', 'scanneds.json'],
+    dict: ['dict.json', 'untranslateds.json'],
     
     lngs: ['zh', 'en', 'ja', 'ko'],
     ns: ['translation'],
@@ -127,9 +127,9 @@ export type Config = Partial<(typeof DEFAULT_CONFIG) & {
 }>
 
 
-/** 扫描源码中的词条，以及收集未翻译的词条。生成 scanneds.json 和 untranslateds.json
-* rootdir 要扫描根目录 [ process.cwd() ]
-* config 配置信息
+/** 扫描源码中的词条，以及收集未翻译的词条，将结果保存到 dict.json 和 untranslateds.json
+    - `process.cwd()` rootdir 要扫描根目录
+    - config 配置信息
 */
 export function scanner (rootdir: string = path.normalize(process.cwd()), config: Config = { }) {
     const output = path.resolve(rootdir, config.output || DEFAULT_CONFIG.output)
@@ -152,22 +152,29 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
         }
     }
     
+    let dict = new Dict()
     
-    let dict = config.dict.reduce( (dict, fp_dict) => 
-            dict.merge( try_require( path.resolve(output, fp_dict)), { print: false, overwrite: true }),
-        new Dict())
+    for (const fp_dict of config.dict)
+        dict.merge(
+            try_require(
+                path.resolve(output, fp_dict)
+            ), { print: false, overwrite: true }
+        )
+    
     
     let c_files = 0
     let c_scanneds = 0
     let errors = []
     
-    // 扫描出的词条及已有的翻译
-    let scanneds: _Dict = { }
-    
     // 所有语言的扫描统计信息
-    let stats = Object.fromEntries(
-        LANGUAGES.map( (language) => [language, { translateds: new Set<string>(), untranslateds: new Set<string>() }])
-    )
+    let stats: Record<Language, { translateds: Set<string>, untranslateds: Set<string> }> = { } as any
+    
+    for (const language of LANGUAGES)
+        stats[language] = {
+            translateds: new Set<string>(),
+            untranslateds: new Set<string>()
+        }
+    
     
     let spinner = ora({ interval: 66 }).start('Scanning...')
     
@@ -198,12 +205,8 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
             language === 'zh' && text || 
             ''
         
-        if (language === 'zh' && !context) return
-        
-        scanneds[key] = {
-            ... scanneds[key],
-            [language]: translation
-        }
+        if (language === 'zh' && !context)
+            return
         
         if (translation)
             stat.translateds.add(key)
@@ -307,9 +310,9 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                     // ------------ 打印 cli 统计表
                     const table = new CliTable({
                         head: [
-                            'Language',
-                            'Untranslated'.red,
-                            'Translated'.green,
+                            '语言',
+                            '未翻译'.red,
+                            '已翻译'.green,
                         ],
                         colAligns: ['right', 'right', 'right', 'right'],
                         style: { head: [] },
@@ -389,23 +392,36 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                         console.log('\n所有词条都至少含有英文翻译.'.green)
                     
                     
-                    // ------------ 生成 scanneds.json
-                    const fp_scanneds = path.resolve(config.output, 'scanneds.json')
+                    // ------------ 生成 untranslateds.json (扫描到词条还没有英文翻译)
+                    const fp_untranslateds = path.resolve(config.output, 'untranslateds.json')
+                    
+                    let untranslateds: _Dict = { }
+                    
+                    for (const key of stats.en.untranslateds) {
+                        let item = { ...dict.get(key) }
+                        item.en ||= ''
+                        item.ja ||= ''
+                        item.ko ||= ''
+                        untranslateds[key] = item
+                    }
+                    
                     this.push(
-                        new_vinyl_file(fp_scanneds, scanneds)
+                        new_vinyl_file(fp_untranslateds, untranslateds)
                     )
+                    
                     
                     // ------------ 写入 dict.json
                     const fp_dict_new = path.resolve(output, 'dict.json')
                     this.push( new_vinyl_file( fp_dict_new, dict.to_json(true) + '\n' ))
                     
-                    console.log(`\n\n${'⚠️ 请检查扫描结果'.yellow} ${fp_scanneds.underline.blue} ${'和新生成的词典文件'.yellow} ${fp_dict_new.underline.blue}`)
-                    console.log('\n请手动补全扫描结果 scanneds.json 中未翻译的词条'.yellow)
-                    console.log('\n')
-                    console.log('通过以上方法补充翻译后重新运行扫描，会根据 scanneds.json 更新 dict.json'.yellow)
-                    console.log('最后 dict.json 所包含的词条会被打包进 js, 通过 new I18N(<dict.json>) 或 i18n.init(<dict.json>) 加载'.yellow)
-                    console.log()
-                    console.log(`${'详细文档请查看：'.yellow} ${'https://github.com/ShenHongFei/xshell/tree/master/i18n'.blue.underline}`)
+                    console.log(
+                        `\n\n${'请手动补全未翻译的词条: '.yellow}${fp_untranslateds.underline.blue}\n` +
+                        `${'请检查新生成的词典文件: '.yellow}${fp_dict_new.underline.blue}\n` +
+                        '\n' +
+                        '补全 untranslateds.json 后需要重新运行扫描，会根据 untranslateds.json 更新 dict.json\n'.yellow +
+                        '最后 dict.json 所包含的词条会被打包进 js, 通过 new I18N(<dict.json>) 或 i18n.init(<dict.json>) 加载\n\n'.yellow +
+                        `${'详细文档请查看: '.yellow}${'https://github.com/ShenHongFei/xshell/tree/master/i18n'.blue.underline}`
+                    )
                     
                     cb()
                 }
@@ -418,12 +434,11 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
         )
         
         .on('end', () => {
-            errors.forEach( errorHandler => errorHandler() )
-            if (!errors.length) return
-            console.log(
-                'https://www.i18next.com/translation-function/essentials\n以上错误可能是由不规范的词条标记导致，标记规范可见：%s',
-                ''.blue.underline
-            )
+            for (const error_handler of errors)
+                error_handler()
+            if (!errors.length)
+                return
+            console.log(`以上错误可能是由不规范的词条标记导致，标记规范可见：\n${'https://www.i18next.com/translation-function/essentials'.blue.underline}`)
         })
 }
 
