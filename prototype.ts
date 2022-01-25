@@ -223,7 +223,6 @@ declare global {
 import fs from 'fs'
 
 import path from 'upath'
-// @ts-ignore
 import byte_size from 'byte-size'
 
 import EmojiRegex from 'emoji-regex'
@@ -774,7 +773,7 @@ Object.defineProperties(Date.prototype, to_method_property_descriptors({
 Object.defineProperties(Number.prototype, to_method_property_descriptors({
     to_fsize_str (this: number, units: 'iec' | 'metric' = 'iec') {
         const { value, unit } = byte_size(this, { units })
-        return `${value} ${(unit as string).rm('i')}`
+        return `${value} ${unit.replace('i', '')}`
     },
     
     to_bin_str (this: number) {

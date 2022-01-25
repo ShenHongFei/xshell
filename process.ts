@@ -102,7 +102,8 @@ export function start (exe: string, args: string[] = [], {
         console.error(error)
     })
     
-    if (stdio === 'ignore') return child
+    if (stdio === 'ignore')
+        return child
     
     if (encoding !== 'binary') {
         if (encoding === 'utf-8') {
@@ -128,8 +129,8 @@ export function start (exe: string, args: string[] = [], {
 
 
 export interface CallOptions extends StartOptions {
-    /** `true` whether to throw Error when code is not 0 */
     throw_code?: boolean
+    input?: string
 }
 
 export interface CallResult<T = string> {
@@ -146,12 +147,13 @@ export interface CallResult<T = string> {
 /** call process for result
     - exe: .exe path or filename (full path is recommanded to skip path searching for better perf)
     - args: `[]` arguments list
-    - options
+    - options?:
         - cwd?: `'d:/'`
         - env?: `process.env` overwrite/add to process.env
         - encoding?: `'utf-8'` child output encoding
         - print?: `true` print option (with details)
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
+        - input?: string
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
         - throw_code?: `true` whether to throw Error when code is not 0
 */
@@ -163,6 +165,7 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
         encoding = 'utf-8', 
         print = true,
         throw_code = true,
+        input
     } = options
     
     const print_options = typeof print === 'boolean' ?
@@ -185,6 +188,8 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
     
     let child = start(exe, args, options)
     
+    if (input)
+        child.stdin.write(input)
     
     // --- collect output
     let stdouts: (string | Buffer)[] = [ ]

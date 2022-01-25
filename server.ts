@@ -453,11 +453,12 @@ export const server = {
         }
         
         
-        if (stats.size >= 100 * 2**20) {
-            let error = new Error('body.length >= 100 mb')
-            ;(error as any).status = 500
-            throw error
-        }
+        // size limit
+        // if (stats.size >= 100 * 2**20) {
+        //     let error = new Error('body.length >= 100 mb')
+        //     ;(error as any).status = 500
+        //     throw error
+        // }
         
         
         if (!req.tunnel) {

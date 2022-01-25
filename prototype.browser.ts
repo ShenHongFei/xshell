@@ -146,7 +146,7 @@ declare global {
     }
 }
 
-
+import byte_size from 'byte-size'
 import EmojiRegex from 'emoji-regex'
 
 export const emoji_regex = EmojiRegex()
@@ -609,6 +609,11 @@ Object.defineProperties(Date.prototype, to_method_property_descriptors({
 
 // ------------------------------------ Number.prototype
 Object.defineProperties(Number.prototype, to_method_property_descriptors({
+    to_fsize_str (this: number, units: 'iec' | 'metric' = 'iec') {
+        const { value, unit } = byte_size(this, { units })
+        return `${value} ${unit.replace('i', '')}`
+    },
+    
     to_bin_str (this: number) {
         return `0b${this.toString(2)}`
     },

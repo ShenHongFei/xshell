@@ -152,19 +152,27 @@ export async function flist (fpd: string, {
         stats: false,
     })
     
-    fps = fps.map( fp => {
+    let fps_ = [ ]
+    
+    const filter_regexp = filter instanceof RegExp
+    const filter_fn = Boolean(filter && !filter_regexp)
+    
+    for (let fp of fps) {
         fp = path.normalize(fp)
+        
+        if (filter_regexp && !filter.test(fp))
+            continue
+            
+        if (filter_fn && !(filter as Function)(fp))
+            continue
+            
         if (print)
             console.log(fp)
-        return fp
-    })
+        
+        fps_.push(fp)
+    }
     
-    if (filter instanceof RegExp)
-        return fps.filter( fp => filter.test(fp))
-    else if (filter)
-        return fps.filter(filter)
-    else
-        return fps
+    return fps_
 }
 
 
@@ -350,6 +358,7 @@ export let fwatchers: Record<string, fs.FSWatcher> = { }
     - fp: path of file or directory
     - callback: called when modified
     - exec: call callback when watch is executed
+    
     save fs.FSWatcher in watchers, subsequent call will auto close existing watcher for the same fp
     
     https://nodejs.org/dist/latest-v15.x/docs/api/fs.html#fs_fs_watch_filename_options_listener  
