@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { I18N } from '../index'
+import { I18N } from '../index.js'
 
 const _dict = {
     "阅读更多": {

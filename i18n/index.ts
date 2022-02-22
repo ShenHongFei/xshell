@@ -1,11 +1,16 @@
 import qs from 'qs'
 import Cookies from 'js-cookie'
-import i18next from 'i18next'
-import type { i18n as I18Next } from 'i18next'
+import {
+    default as i18next,
+    type i18n as I18Next
+} from 'i18next'
 import type { Trans } from 'react-i18next'
 
-import { Dict } from './dict'
-import type { _Dict, Item } from './dict'
+import {
+    Dict,
+    type _Dict,
+    type Item,
+} from './dict.js'
 
 
 export type Language = 'zh' | 'en' | 'ja' | 'ko'
@@ -155,11 +160,9 @@ export class I18N {
         i18n.init(dict)
     */
     init (dict: _Dict) {
-        Object.entries(
-            new Dict(dict).to_resources()
-        ).forEach(([language, { translation }]) => {
-            this.i18next.addResources(language, 'translation', translation)
-        })
+        const resources = new Dict(dict).to_resources()
+        for (const language in resources)
+            this.i18next.addResources(language, 'translation', resources[language].translation)
     }
     
     toJSON () {

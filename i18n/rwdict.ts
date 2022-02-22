@@ -1,8 +1,11 @@
 import '../prototype.js'
 
-import type { Language } from './index'
-import Dict from './dict'
-import type { Item, _Dict } from './dict'
+import type { Language } from './index.js'
+import {
+    Dict,
+    type Item,
+    type _Dict,
+} from './dict.js'
 
 
 /** read write Dict for scanner */

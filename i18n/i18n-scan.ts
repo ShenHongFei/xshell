@@ -3,8 +3,8 @@
 import path from 'upath'
 import { program } from 'commander'
 
-import scanner from './scanner'
-import { try_require } from './utils'
+import scanner from './scanner/index.js'
+import { try_require } from './utils.js'
 
 program.name('i18n-scan')
     .option('-r, --rootdir [rootdir]'   , '根目录：默认为当前工作目录', path.normalize(process.cwd()))

@@ -99,8 +99,10 @@ function get_text (selector:
 
 
 export function activate (ctx: ExtensionContext) {
-    my_commands.forEach( ({ func }) => {
-        ctx.subscriptions.push(commands.registerCommand(func.name, func))
-    })
+    for (const { func } of my_commands)
+        ctx.subscriptions.push(
+            commands.registerCommand(func.name, func)
+        )
+    
     console.log('xshell loaded')
 }

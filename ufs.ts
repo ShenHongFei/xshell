@@ -39,8 +39,9 @@ export class UFS {
     
     
     existsSync (path: string) {
-        for (let fs of this.fss)
-            if (fs.existsSync(path)) return true
+        for (const fs of this.fss)
+            if (fs.existsSync(path))
+                return true
         return false
     }
     
@@ -104,7 +105,7 @@ export class UFS {
     createReadStream (path: string, options?: any) {
         let last_error = null
         
-        for (let fs of this.fss)
+        for (const fs of this.fss)
             try {
                 if (!fs.createReadStream)   throw new Error('method not supported: "createReadStream"')
                 if (!fs.existsSync)         throw new Error('method not supported: "existsSync"')
@@ -124,7 +125,7 @@ export class UFS {
     createWriteStream (path: string, options?: any) {
         let last_error = null
         
-        for (let fs of this.fss)
+        for (const fs of this.fss)
             try {
                 if (!fs.createWriteStream) throw new Error('Method not supported: "createWriteStream"')
                 fs.statSync(path)
@@ -135,7 +136,6 @@ export class UFS {
                 error.prev = last_error
                 last_error  = error
             }
-        
         
         throw last_error
     }
@@ -164,16 +164,19 @@ export class UFS {
             args.pop()
             
         const iterate = (i: number, error: Error) => {
-            if (i >= this.fss.length) return callback?.(error)
+            if (i >= this.fss.length)
+                return callback?.(error)
             
             const fs = this.fss[i]
             
-            if (!fs[method]) return iterate(i+1, new Error(`fs no method: ${method}, args: ${args}`))
+            if (!fs[method])
+                return iterate(i + 1, new Error(`fs no method: ${method}, args: ${args}`))
             
             return fs[method](...args, (fs_error: Error & { prev: Error }, ...results: any[]) => {
-                if (!fs_error) return callback?.call(fs, null, ...results)
+                if (!fs_error)
+                    return callback?.call(fs, null, ...results)
                 fs_error.prev = error
-                return iterate(i+1, fs_error)
+                return iterate(i + 1, fs_error)
             })
         }
         

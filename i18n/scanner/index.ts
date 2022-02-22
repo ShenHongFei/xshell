@@ -1,25 +1,29 @@
+import type { Transform } from 'stream'
+
 import i18n_scanner from 'i18next-scanner'
 import path from 'upath'
 import ejs from 'ejs'
 import vfs from 'vinyl-fs'
-import map from 'map-stream'
 import sort from 'gulp-sort'
 import ora from 'ora'
 import cli_truncate from 'cli-truncate'
 import Vinyl from 'vinyl'
 import through2 from 'through2'
 import CliTable from 'cli-table3'
-import type { Transform } from 'stream'
-
-import { LANGUAGES } from '../index'
-import type { Language } from '../index'
-import Dict from '../rwdict'
-import type { _Dict } from '../dict'
-import { try_require } from '../utils'
 
 import '../../prototype.js'
+import { map_stream } from '../../utils.js'
 
-import { mix_parse_trans_from_string_by_babel } from './parser'
+import {
+    LANGUAGES,
+    type Language,
+} from '../index.js'
+import Dict from '../rwdict.js'
+import type { _Dict } from '../dict.js'
+import { try_require } from '../utils.js'
+
+
+import { mix_parse_trans_from_string_by_babel } from './parser.js'
 
 
 
@@ -234,7 +238,7 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
         
         // 每个文件扫描前，统计文件数量
         .pipe(
-            map( (file: Vinyl, cb: Function, count: number) => {
+            map_stream((file: Vinyl, cb: Function) => {
                 // 支持 `// @i18n-noscan` 忽略扫描
                 if (/\/\/\s*@i18n-noscan\s/.test(file.contents.toString())) return cb()
                 c_files++
@@ -258,8 +262,10 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                 }
                 
                 c_scanneds++
-                const percent = Math.round( (100 * c_scanneds) / c_files )
-                const text = `Scanning (${percent}%): ${file.path.green}`
+                const percent = Math.round(
+                    100 * c_scanneds / c_files
+                )
+                const text = `Scanning (${percent}%): ${file.path.blue}`
                 spinner.text = cli_truncate(text, process.stdout.columns - 5, { position: 'middle', })
                 
                 let code = file.contents.toString()
@@ -380,16 +386,20 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                     
                     const en_untranslateds = stats.en.untranslateds
                     if (en_untranslateds.size) {
-                        console.log('\n未翻译的英文词条:'.yellow)
-                        Array.from(en_untranslateds).slice(0, 10).forEach( untranslated => {
+                        console.log('\n缺少英文翻译的词条:'.yellow)
+                        let i = 0
+                        for (const untranslated of en_untranslateds) {
+                            if (i >= 10)
+                                break
                             console.log(untranslated)
-                        })
+                            i++
+                        }
                         if (en_untranslateds.size > 10) {
                             console.log('...')
                             console.log(`--- 共 ${en_untranslateds.size} 个未翻译的英文词条 ---`)
                         }
                     } else
-                        console.log('\n所有词条都至少含有英文翻译.'.green)
+                        console.log('\n所有词条都至少含有英文翻译'.green)
                     
                     
                     // ------------ 生成 untranslateds.json (扫描到词条还没有英文翻译)
@@ -412,7 +422,12 @@ export function scanner (rootdir: string = path.normalize(process.cwd()), config
                     
                     // ------------ 写入 dict.json
                     const fp_dict_new = path.resolve(output, 'dict.json')
-                    this.push( new_vinyl_file( fp_dict_new, dict.to_json(true) + '\n' ))
+                    this.push(
+                        new_vinyl_file(
+                            fp_dict_new,
+                            dict.to_json(true) + '\n'
+                        )
+                    )
                     
                     console.log(
                         `\n\n${'请手动补全未翻译的词条: '.yellow}${fp_untranslateds.underline.blue}\n` +

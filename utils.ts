@@ -1,6 +1,11 @@
-import { Readable } from 'stream'
-
+import {
+    Stream,
+    type Readable,
+    type Duplex
+} from 'stream'
 import util from 'util'
+
+import type Vinyl from 'vinyl'
 import omit from 'lodash/omit'
 
 import './prototype'
@@ -25,7 +30,10 @@ export function dedent (
         (arr, str) => {
             const matches = str.match(/\n[\t ]+/g)
             if (matches) 
-                return arr.concat(matches.map(match => match.length - 1))
+                return arr.concat(
+                    matches.map(match => 
+                        match.length - 1)
+                )
             
             return arr
         },
@@ -63,15 +71,12 @@ export function unique <T> (iterable: T[] | Iterable<T>, selector?: string | ((o
         return [...new Set(iterable)]
     
     let map = new Map()
-    if (typeof selector === 'string')
-        for (const x of iterable)
-            map.set(x[selector], x)
-    else
-        for (const x of iterable)
-            map.set(
-                selector(x),
-                x
-            )
+    const is_str_selector = typeof selector === 'string'
+    for (const x of iterable)
+        map.set(
+            is_str_selector ? x[selector] : selector(x),
+            x
+        )
     
     return [...map.values()]
 }
@@ -96,15 +101,15 @@ export function strcmp (l: string, r: string) {
 
 
 /** 拼接 TypedArrays 生成一个完整的 Uint8Array */
-export function concat (views: ArrayBufferView[]) {
+export function concat (arrays: ArrayBufferView[]) {
     let length = 0
-    for (const v of views)
-        length += v.byteLength
-        
+    for (const a of arrays)
+        length += a.byteLength
+    
     let buf = new Uint8Array(length)
     let offset = 0
-    for (const v of views) {
-        const uint8view = new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+    for (const a of arrays) {
+        const uint8view = new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
         buf.set(uint8view, offset)
         offset += uint8view.byteLength
     }
@@ -137,16 +142,16 @@ export function log_section (
 ) {
     const stime = (() => {
         if (time)
-            return `[${String(new Date().getTime() - global.started_at.getTime()).pad(4, { position: 'left' })} ms]`
+            return `${String(new Date().getTime() - global.started_at.getTime()).pad(4, { position: 'left' })} ms`
         if (timestamp)
             if (typeof timestamp === 'object')
-                return `[${timestamp.to_str()}]`
+                return `${timestamp.to_str()}`
             else
-                return `[${new Date().to_str()}]`
+                return `${new Date().to_str()}`
         return ''
     })()
     
-    message = `${stime.pad(20)}${message}`
+    message = `${message.pad(20, { character: '-' })}${stime}`
     
     if (color)
         message = message[color]
@@ -207,6 +212,152 @@ export namespace inspect {
 
 
 // ------------------------------------ Steam
+/** npm map-stream  
+    filter will reemit the data if cb(err,pass) pass is truthy 
+    
+    reduce is more tricky  
+    maybe we want to group the reductions or emit progress updates occasionally  
+    the most basic reduce just emits one 'data' event after it has recieved 'end'
+    
+    create an event stream and apply function to each .write,  
+    emitting each response as data unless it's an empty callback
+ */
+export function map_stream <Out, In = Vinyl> (
+    mapper: (obj: In, cb: Function) => any, 
+    options?: { failures?: boolean }
+) {
+    options = options || { }
+    
+    let inputs = 0,
+        outputs = 0,
+        ended = false,
+        paused = false,
+        destroyed = false,
+        last_written = 0,
+        in_next = false
+    
+    
+    let stream = Object.assign(new Stream(), {
+        readable: true, 
+        writable: true,
+        
+        write (data?: any) {
+            if (ended) throw new Error('map stream is not writable')
+            in_next = false
+            inputs++
+            
+            try {
+                // catch sync errors and handle them like async errors
+                const written = wrapped_mapper(data, inputs, next)
+                paused = (written === false)
+                return !paused
+            } catch (err) {
+                // if the callback has been called syncronously, and the error has occured in an listener, throw it again.
+                if (in_next)
+                    throw err
+                next(err)
+                return !paused
+            }
+        },
+        
+        end (data?: any) {
+            if (ended) return
+            _end(data)
+        },
+        
+        destroy () {
+            ended = destroyed = true
+            stream.writable = stream.readable = paused = false
+            process.nextTick(function () {
+                stream.emit('close')
+            })
+        },
+        
+        pause () {
+            paused = true
+        },
+        
+        resume () {
+            paused = false
+        }
+    })
+    
+    
+    let error_event_name = options.failures ? 'failure' : 'error'
+    
+    // Items that are not ready to be written yet (because they would come out of order) get stuck in a queue for later.
+    let write_queue = { }
+    
+    
+    function queue_data (data, number) {
+        let next_to_write = last_written + 1
+        
+        if (number === next_to_write) {
+            // If it's next, and its not undefined write it
+            if (data !== undefined) 
+                stream.emit('data', data)
+            
+            last_written++
+            next_to_write++
+        } else 
+            // Otherwise queue it for later.
+            write_queue[number] = data
+        
+        
+        // If the next value is in the queue, write it
+        if (Object.prototype.hasOwnProperty.call(write_queue, next_to_write)) {
+            let data_to_write = write_queue[next_to_write]
+            delete write_queue[next_to_write]
+            return queue_data(data_to_write, next_to_write)
+        }
+        
+        outputs++
+        if (inputs === outputs) {
+            if (paused) {
+                paused = false
+                stream.emit('drain') // written all the incoming events
+            }
+            if (ended) _end()
+        }
+    }
+    
+    function next (err?: Error, data?: any, number?: number) {
+        if (destroyed) return
+        in_next = true
+        
+        if (!err || options.failures)
+            queue_data(data, number)
+        
+        if (err)
+            stream.emit(error_event_name, err)
+        
+        in_next = false
+    }
+    
+    /** Wrap the mapper function by calling its callback with the order number of the item in the stream. */ 
+    function wrapped_mapper (input, number, callback) {
+        return mapper.call(null, input, function (err, data) {
+            callback(err, data, number)
+        })
+    }
+    
+    function _end (data?: any) {
+        // if end was called with args, write it, 
+        ended = true // write will emit 'end' if ended is true
+        stream.writable = false
+        if (data !== undefined) 
+            return queue_data(data, inputs)
+        else if (inputs === outputs) { // wait for processing 
+            stream.readable = false
+            stream.emit('end')
+            stream.destroy() 
+        }
+    }
+    
+    return stream as Duplex
+}
+
+
 export async function stream_to_buffer (stream: Readable) {
     let chunks = [ ]
     for await (const chunk of stream as AsyncIterable<Buffer>)

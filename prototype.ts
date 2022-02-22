@@ -607,7 +607,7 @@ Object.defineProperties(String.prototype, {
         
         
         trim_doc_comment (this: string) {
-            return '/** ' + this.slice(3, -2).replace(/\s*\*\s*/g, '  ').replace(/@(param|params|return) \{.*?\}\s*/g, '').trim() + ' */'
+            return `/** ${this.slice(3, -2).replace(/\s*\*\s*/g, '  ').replace(/@(param|params|return) \{.*?\}\s*/g, '').trim()} */`
         },
         
         
@@ -641,17 +641,16 @@ Object.defineProperties(String.prototype, {
                 .replace(new RegExp(cjk + '([\\+\\-\\*\\/=&\\\\\\|<>])([A-Za-z0-9])', 'g'), '$1 $2 $3')
                 .replace(new RegExp('([A-Za-z0-9])([\\+\\-\\*\\/=&\\\\\\|<>])' + cjk, 'g'), '$1 $2 $3')
                 
-            const textBak = text_
+            const text_bak = text_
             
             text_ = text_.replace(new RegExp(cjk + '([\\(\\[\\{<\u201c]+(.*?)[\\)\\]\\}>\u201d]+)' + cjk, 'g'), '$1 $2 $4')
             
-            if (text_ === textBak)
+            if (text_ === text_bak)
                 text_ = text_
                     .replace(new RegExp(cjk + '([\\(\\[\\{<\u201c>])', 'g'), '$1 $2')
                     .replace(new RegExp('([\\)\\]\\}>\u201d<])' + cjk, 'g'), '$1 $2')
             
             return text_
-                // eslint-disable-next-line no-useless-escape
                 .replace(/([\(\[\{<\u201c]+)(\s*)(.+?)(\s*)([\)\]\}>\u201d]+)/g, '$1$3$5')
                 .replace(new RegExp(cjk + '([~!;:,\\.\\?\u2026])([A-Za-z0-9])', 'g'), '$1$2 $3')
                 .replace(new RegExp(cjk + '([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])', 'g'), '$1 $2')

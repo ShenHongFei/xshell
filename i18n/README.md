@@ -1,7 +1,10 @@
 # xshell/i18n
 
 ## TL;DR
-npm i xshell/i18n
+```shell
+npm install xshell
+```
+
 ```typescript
 import I18N from 'xshell/i18n'
 

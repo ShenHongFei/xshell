@@ -123,7 +123,7 @@ function print_ast (nodes: Node[] | Node, sourceFile: SourceFile) {
 
 
 export function parse_code (code: string) {
-    return ts.createSourceFile('REPL.ts', code, ts.ScriptTarget.ESNext)
+    return ts.createSourceFile('repl.ts', code, ts.ScriptTarget.ESNext)
 }
 
 

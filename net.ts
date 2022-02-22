@@ -29,7 +29,7 @@ import type { Encoding } from './file.js'
 import { inspect, output_width } from './utils.js'
 
 export enum MyProxy {
-    socks5 = 'http://localhost:10080',
+    socks5  = 'http://localhost:10080',
     whistle = 'http://localhost:8899',
 }
 
@@ -62,8 +62,8 @@ export { Cookie }
 
 
 export const _request = request_promise.defaults({
-    rejectUnauthorized: false,
-    gzip: true,
+    // rejectUnauthorized: false,
+    
     /** prevent 302 redirect cause error, which is a boolean to set whether status codes other than 2xx should also reject the promise */
     simple: false,
     
@@ -169,9 +169,6 @@ export async function request (url: string | URL, {
 }: RequestOptions & { raw?: boolean } = { }) {
     url = url.toString()
     
-    if (!url.startsWith('http'))
-        url = 'http://' + url
-    
     const _body = body  // for error log
     
     if (body && !method)
@@ -207,7 +204,7 @@ export async function request (url: string | URL, {
         
         headers: {
             'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja-JP;q=0.6,ja;q=0.5',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
             ... body ? { 'content-type': type } : { }, 
             ... cookies ? {
                 cookie: Object.entries(cookies)
@@ -267,7 +264,7 @@ export async function request (url: string | URL, {
             
             if (_body)
                 s += `\n${'request.body:'.blue}\n` +
-                    inspect(body) + '\n'
+                    inspect(_body) + '\n'
             
             if (name === 'StatusCodeError')
                 s += `\n${'response.status:'.yellow} ${String(error.statusCode).red}\n`
@@ -383,7 +380,7 @@ export function to_curl (url: string | URL, { queries, headers, method, body, pr
         //     ( proxy  ?  ' --proxy ' + proxy.quote()  :  ' --noproxy ' + '*'.quote())
         // ) +
         ( proxy  ?  ` --proxy ${proxy.quote()}`  :  '' ) +
-        ( method && method !== 'get'  ?  ` -X ${method}`  :  '' ) +
+        ( method && method !== 'get'  ?  ` -X ${method.toUpperCase()}`  :  '' ) +
         ( headers  ?  Object.entries(headers).map( ([key, value]) => ' -H ' + `${key}: ${value}`.quote() ).join('') : '' ) +
         ( body  ?  ' -H ' + 'content-type: application/json'.quote()  :  '') +
         ( body  ?  ' --data ' + JSON.stringify(body).quote()  :  '')

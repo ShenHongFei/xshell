@@ -1,17 +1,27 @@
-import { isFunction, castArray, trim, get as _get } from 'lodash'
+import castArray from 'lodash/castArray.js'
+import trim from 'lodash/trim.js'
+import _get from 'lodash/get.js'
+
 import traverse from '@babel/traverse'
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 
 import '../../prototype.js'
 
+
 // import { Checker } from './checker'
 
 /** file:///D:/0/i18next-scanner/src/parser.js */
 export function mix_parse_trans_from_string_by_babel (parser) {
-    parser.parseTransFromStringByBabel = function(code: string, options = { }, customHandler = null, onError: (callback: Function) => void = () => { } ) {
-        if (isFunction(options)) {
-            customHandler = options
+    parser.parseTransFromStringByBabel = function parse_trans_from_string_by_babel (
+        code: string, 
+        options = { }, 
+        custom_handler = null,
+        on_error: (callback: Function) => void 
+            = () => { }
+    ) {
+        if (typeof options === 'function') {
+            custom_handler = options
             options = { }
         }
         
@@ -91,7 +101,7 @@ export function mix_parse_trans_from_string_by_babel (parser) {
             const tOptions = attr.tOptions
             const options = {
                 ...tOptions,
-                defaultValue: defaultsString || nodes_to_string(node.children, filepath, onError),
+                defaultValue: defaultsString || nodes_to_string(node.children, filepath, on_error),
                 fallbackKey,
             }
             
@@ -106,8 +116,8 @@ export function mix_parse_trans_from_string_by_babel (parser) {
                 options.ns = attr.ns
             }
             
-            if (customHandler) {
-                customHandler(transKey, options)
+            if (custom_handler) {
+                custom_handler(transKey, options)
                 return
             }
             
@@ -119,7 +129,7 @@ export function mix_parse_trans_from_string_by_babel (parser) {
             traverse(ast, { JSXElement: parseJSXElement, })
             // traverse(ast, Checker({ filepath }))
         } catch (err) {
-            onError(() => {
+            on_error(() => {
                 console.error('')
                 const { line, column } = (err && err.loc) || { line: 1, column: 1 }
                 console.error([filepath, line, column].join(":").yellow)
@@ -137,7 +147,7 @@ export function mix_parse_trans_from_string_by_babel (parser) {
 
 function nodes_to_string (nodes, filepath, onError) {
     let memo = ''
-    let nodeIndex = 0
+    let node_index = 0
     nodes.forEach((node, i) => {
         if (t.isJSXText(node) || t.isStringLiteral(node)) {
             const value = node.value
@@ -169,10 +179,10 @@ function nodes_to_string (nodes, filepath, onError) {
                 })
             
         } else if (node.children)
-            memo += `<${nodeIndex}>${nodes_to_string(node.children, filepath, onError)}</${nodeIndex}>`
+            memo += `<${node_index}>${nodes_to_string(node.children, filepath, onError)}</${node_index}>`
         
         
-        nodeIndex++
+        node_index++
     })
     
     return memo

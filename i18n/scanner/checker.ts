@@ -1,12 +1,12 @@
 import * as types from '@babel/types'
 import { PluginItem } from '@babel/core'
 
-let unmarkeds = []
+export let unmarkeds = []
 
 let t = 0
 let Trans = 0
 
-function is_t(node) {
+function is_t (node: types.Node) {
     if (types.isCallExpression(node)) {
         // t('chtext')
         if (types.isIdentifier(node.callee) && node.callee.name === "t")
@@ -25,25 +25,22 @@ function is_t(node) {
     return false
 }
 
-function is_trans(node) {
+function is_trans (node: types.Node) {
     // <Trans>
-    if (
+    return (
         types.isJSXElement(node) &&
         types.isJSXOpeningElement(node.openingElement) &&
         types.isJSXIdentifier(node.openingElement.name) &&
         node.openingElement.name.name === "Trans"
     )
-        return true
-    
-    return false
 }
 
 const has_unmarked_chinese_characters = (str: string) => 
     !t && !Trans && /[\u4e00-\u9fa5]/.test(str)
 
 
-const Checker = ({ filepath }) => {
-    const visitor: PluginItem = {
+export function Checker ({ filepath }) {
+    return {
         CallExpression: {
             enter({ node }) {
                 if (is_t(node))
@@ -76,8 +73,5 @@ const Checker = ({ filepath }) => {
             if (has_unmarked_chinese_characters(node.value.raw))
                 unmarkeds.push({ filepath, loc: node.loc, value: node.value.cooked })
         },
-    }
-    return visitor
+    } as PluginItem
 }
-
-export { Checker, unmarkeds }

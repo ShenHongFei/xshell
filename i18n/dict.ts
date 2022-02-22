@@ -1,4 +1,4 @@
-import { Language } from './index'
+import type { Language } from './index.js'
 
 export class Dict {
     _dict: _Dict

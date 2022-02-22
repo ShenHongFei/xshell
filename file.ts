@@ -14,6 +14,7 @@ import MFS from 'memfs'
 declare module 'memfs' {
     interface IFs {
         join: typeof path.join
+        is_mfs: true
     }
 }
 
@@ -27,15 +28,17 @@ export type Encoding = 'utf-8' | 'gb18030' | 'shift-jis' | 'binary'
 
 
 export function create_mfs () {
-    return mfs = Object.assign(
-        MFS.createFsFromVolume(
-            new MFS.Volume()
-        ), 
-        { join: path.join.bind(path) }
+    mfs = MFS.createFsFromVolume(
+        new MFS.Volume()
     )
+    
+    mfs.join = path.join.bind(path)
+    mfs.is_mfs = true
+    
+    return mfs
 }
 
-export let mfs: MFS.IFs & { join: typeof path.join }
+export let mfs: MFS.IFs
 
 
 export async function fread (fp: string): Promise<string>

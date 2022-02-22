@@ -214,7 +214,17 @@ export const server = {
     async rpc (ctx: Context) {
         const { request: { query, body }, response } = ctx
         
-        let { func, args = [], ignore = false, async: _async = false }: { func: string, args: any[] | string, ignore: boolean | string, async: boolean | string } = { ...query, ...body }
+        let {
+            func,
+            args = [],
+            ignore = false,
+            async: _async = false
+        }: {
+            func: string
+            args: any[] | string
+            ignore: boolean | string
+            async: boolean | string
+        } = { ...query, ...body }
         
         if (!func) {
             let error = new Error('rpc no func')
