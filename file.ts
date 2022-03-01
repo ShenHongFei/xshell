@@ -300,7 +300,7 @@ export async function fmkdir (fpd: string, options: fs.MakeDirectoryOptions & { 
             return
         } else throw new Error(`file with same name already exists, cannot create directory: ${fpd}`)
     else if (options.print)
-        console.log('create new directory:', fpd)
+        console.log('mkdir:', fpd)
     
     await fsp.mkdir(fpd, { recursive: true })
 }

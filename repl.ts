@@ -1,8 +1,7 @@
-import util from 'util'
 import nvm from 'vm'
+import fs from 'fs'
 import repl from 'repl'
 import process from 'process'
-import fs from 'fs'
 
 
 
@@ -24,7 +23,7 @@ import type { Context } from 'koa'
 
 
 import './prototype'
-import { log_section, log_line, delay, inspect, output_width } from './utils'
+import { log_section, log_line, delay, inspect, set_inspect_options } from './utils'
 import { fread, fwrite, fwatchers, create_mfs, set_ufs, UFS } from './file'
 import { fp_root } from './process.js'
 
@@ -38,27 +37,8 @@ declare global {
 }
 
 
-// ------------ inspect options
+set_inspect_options()
 
-util.inspect.defaultOptions.maxArrayLength  = 40
-try {
-    util.inspect.defaultOptions.maxStringLength = 10000
-} catch {
-    console.error('set util.inspect.defaultOptions.maxStringLength error')
-}
-util.inspect.defaultOptions.breakLength     = output_width
-util.inspect.defaultOptions.colors          = true
-util.inspect.defaultOptions.compact         = false
-util.inspect.defaultOptions.getters         = true
-util.inspect.defaultOptions.depth           = 2
-util.inspect.defaultOptions.sorted          = false
-util.inspect.defaultOptions.showProxy       = true
-
-util.inspect.styles.number  = 'green'
-util.inspect.styles.string  = 'cyan'
-util.inspect.styles.boolean = 'blue'
-util.inspect.styles.date    = 'magenta'
-util.inspect.styles.special = 'white'
 
 
 
@@ -646,6 +626,6 @@ export async function pollute_module_default_export (fp_mod: string, name: strin
 
 
 function log_mod_loaded (id: string) {
-    console.log(`${id.pad(20)}loaded`)
+    console.log(`${id.pad(40)}loaded`)
 }
 

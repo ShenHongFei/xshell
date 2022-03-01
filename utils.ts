@@ -6,11 +6,32 @@ import {
 import util from 'util'
 
 import type Vinyl from 'vinyl'
-import omit from 'lodash/omit'
+import omit from 'lodash/omit.js'
 
-import './prototype'
+import './prototype.js'
 
 export const output_width = 230
+
+
+export function set_inspect_options () {
+    util.inspect.defaultOptions.maxArrayLength  = 40
+    util.inspect.defaultOptions.maxStringLength = 10000
+    util.inspect.defaultOptions.breakLength     = output_width
+    util.inspect.defaultOptions.colors          = true
+    util.inspect.defaultOptions.compact         = false
+    util.inspect.defaultOptions.getters         = true
+    util.inspect.defaultOptions.depth           = 2
+    util.inspect.defaultOptions.sorted          = false
+    util.inspect.defaultOptions.showProxy       = true
+    
+    util.inspect.styles.number  = 'green'
+    util.inspect.styles.string  = 'cyan'
+    util.inspect.styles.boolean = 'blue'
+    util.inspect.styles.date    = 'magenta'
+    util.inspect.styles.special = 'white'
+}
+
+
 
 
 export function dedent (
@@ -151,7 +172,7 @@ export function log_section (
         return ''
     })()
     
-    message = `${message.pad(20, { character: '-' })}${stime}`
+    message = `${`${message} `.pad(39, { character: '-' })} ${stime}`
     
     if (color)
         message = message[color]

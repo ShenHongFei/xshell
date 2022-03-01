@@ -230,6 +230,9 @@ import EmojiRegex from 'emoji-regex'
 import strip_ansi from 'strip-ansi'
 import chalk from 'chalk'
 
+chalk.level = 2
+
+
 export const emoji_regex = EmojiRegex()
 
 export { chalk }
