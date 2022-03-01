@@ -45,7 +45,7 @@ export class I18N {
     t : (text: string, options?: { language?: Language, context?: string, count?: number, [key: string]: any }) => string
     
     /** render: 翻译配置字段 */
-    r : (field: Item | undefined | null) => string
+    r : (field: Item | undefined | null, language?: Language) => string
     
     i18next: I18Next
     
@@ -98,9 +98,9 @@ export class I18N {
             return this.i18next.t(text, { ...options, lng: language, defaultValue: text })
         }
         
-        this.r = (field) => 
+        this.r = (field, language = this.language) => 
             field ?
-                field[this.language] || field.en || field.zh || field as any || ''
+                field[language] || field.en || field.zh || field as any || ''
             :
                 field || ''
         
