@@ -206,6 +206,7 @@ export function escape_line_feed (str: string) {
 /** util.inspect(obj) 
     - options
         - limit?: `10000`
+        - omit?: string[]
 */
 export function inspect (
     obj: any, 

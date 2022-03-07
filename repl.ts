@@ -37,8 +37,8 @@ declare global {
 }
 
 
-set_inspect_options()
 
+set_inspect_options()
 
 
 
@@ -69,8 +69,6 @@ const {
 
 let inspection_limit    = 10000
 let printing_compiled_js = false
-
-
 
 export function set_inspection_limit (limit: number = 10000) {
     if (limit === -1)

@@ -16,8 +16,8 @@
     ],
     "type": "commonjs",
     "engines": {
-        "node": ">=17.4.0",
-        "vscode": ">=1.64.0"
+        "node": ">=17.6.0",
+        "vscode": ">=1.65.0"
     },
     "scripts": {
         "start": "node --title=xshell --inspect=0.0.0.0:8420 ./xshell.js",
@@ -83,7 +83,7 @@
         "fs-monkey": "^1.0.3",
         "gulp-sort": "^2.0.0",
         "hash-string": "^1.0.0",
-        "i18next": "^21.6.12",
+        "i18next": "^21.6.13",
         "i18next-scanner": "^3.1.0",
         "iconv-lite": "^0.6.3",
         "js-cookie": "^3.0.1",
@@ -136,8 +136,8 @@
         "@types/stream-buffers": "^3.0.4",
         "@types/tampermonkey": "^4.0.5",
         "@types/vinyl-fs": "^2.4.12",
-        "@types/vscode": "^1.64.0",
+        "@types/vscode": "^1.65.0",
         "source-map-loader": "^3.0.1",
-        "ts-loader": "^9.2.6"
+        "ts-loader": "^9.2.7"
     }
 }

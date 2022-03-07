@@ -1,8 +1,17 @@
-import { window, commands, Range, Position } from 'vscode'
-import type { ExtensionContext } from 'vscode'
+import {
+    window,
+    commands,
+    Range,
+    Position,
+    type ExtensionContext,
+} from 'vscode'
 
-import './prototype'
-import { rpc } from './net'
+import './prototype.js'
+import { rpc } from './net.js'
+import { set_inspect_options } from './utils.js'
+
+
+set_inspect_options()
 
 
 const my_commands = [

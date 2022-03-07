@@ -14,7 +14,7 @@ declare global {
         
         limit (this: string, width: number, { character, position }?: { character?: string,  position?: 'left' | 'right'}): string
         
-        to_regx (this: string, preservations?: string, flags?: string): RegExp
+        to_regexp (this: string, preservations?: string, flags?: string): RegExp
         
         to_bool (this: string): boolean
         
@@ -176,7 +176,8 @@ declare global {
         
         to_date_str (this: Date): string
         
-        to_time_str (this: Date): string
+        /** - ms?: `false` show ms */
+        to_time_str (this: Date, ms?: boolean): string
     }
     
     
@@ -217,6 +218,11 @@ declare global {
         
         join_lines (): string
     }
+    
+    
+    interface BigInt {
+        toJSON (this: bigint): string
+    }
 }
 
 
@@ -236,7 +242,6 @@ chalk.level = 2
 export const emoji_regex = EmojiRegex()
 
 export { chalk }
-
 
 export function to_method_property_descriptors (methods: { [name: string]: Function }): PropertyDescriptorMap {
     return Object.fromEntries(
@@ -266,9 +271,9 @@ export function to_getter_property_descriptors (getters: { [name: string]: Funct
 export const cjk = '([\u2e80-\u9fff\uf900-\ufaff])'
 
 export const quotes = {
-    single:     "'",
-    double:     '"',
-    backtick:   '`',
+    single:   "'",
+    double:   '"',
+    backtick: '`',
 }
 
 export const brackets = {
@@ -367,14 +372,20 @@ Object.defineProperties(String.prototype, {
         },
         
         
-        to_regx (this: string, preservations: string, flags = ''): RegExp {
+        to_regexp (this: string, preservations: string, flags = ''): RegExp {
             const preserved_chars = new Set(preservations)
             const replace_chars: string = Array.prototype.filter.call('|\\{}()[]^$+*?.-', (c: string) => !preserved_chars.has(c))
-                .map((c: string) => 
+                .map((c: string) =>
                     c === ']' ? '\\]' : c
                 ).join('')
             
-            return new RegExp( this.replace(new RegExp(`[${replace_chars}]`, 'g'), '\\$&'),  flags)
+            return new RegExp(
+                this.replace(
+                    new RegExp(`[${replace_chars}]`, 'g'),
+                    '\\$&'
+                ), 
+                flags
+            )
         },
         
         
@@ -402,7 +413,7 @@ Object.defineProperties(String.prototype, {
                 const part = pattern.slice(left, right)
                 if (part)
                     regx_parts.push(
-                        part.to_regx(preservations).source.bracket()
+                        part.to_regexp(preservations).source.bracket()
                     )
             }
             
@@ -496,7 +507,7 @@ Object.defineProperties(String.prototype, {
                 const part = pattern.slice(left, right)
                 if (part)
                     regx_parts.push(
-                        part.to_regx(preservations).source.bracket()
+                        part.to_regexp(preservations).source.bracket()
                     )
             }
             
@@ -709,7 +720,8 @@ Object.defineProperties(String.prototype, {
     
     ... to_method_property_descriptors({
         to_slash (this: string) {
-            if (!this) return this
+            if (!this)
+                return this
             return path.normalizeSafe(this)
         },
         
@@ -722,7 +734,7 @@ Object.defineProperties(String.prototype, {
 
 // ------------------------------------ Date.prototype
 Object.defineProperties(Date.prototype, to_method_property_descriptors({
-    to_str (this: Date) {
+    to_str (this: Date, ms?: boolean) {
         const [ampm, hour] = (() => {
             let hour = this.getHours()
             if (hour <= 6)
@@ -751,20 +763,35 @@ Object.defineProperties(Date.prototype, to_method_property_descriptors({
             return ['深夜', hour]
         })()
         
+        const zero_padding = { character: '0', position: 'left' } as const
         
         return '' +
             // year.month.date
-            `${this.getFullYear()}.${String(this.getMonth() + 1).pad(2, { character: '0', position: 'left' })}.${String(this.getDate()).pad(2, { character: '0', position: 'left' })} ` +
-            // 上午 10:03:02
-            `${ampm} ${String(hour).pad(2, { character: '0', position: 'left' })}:${String(this.getMinutes()).pad(2, { character: '0', position: 'left' })}:${String(this.getSeconds()).pad(2, { character: '0', position: 'left' })}`
+            this.getFullYear() + '.' + 
+            String(this.getMonth() + 1).pad(2, zero_padding) + '.' + 
+            String(this.getDate()).pad(2, zero_padding) + ' ' +
+            
+            // 上午
+            ampm + ' ' +
+            
+            // 10:03:02
+            String(hour).pad(2, zero_padding) + ':' +
+            String(this.getMinutes()).pad(2, zero_padding) + ':' +
+            String(this.getSeconds()).pad(2, zero_padding) + 
+            
+            (ms ?
+                '.' + String(this.getMilliseconds()).pad(3, zero_padding)
+            :
+                ''
+            )
     },
     
     to_date_str (this: Date) {
         return this.to_str().split(' ')[0]
     },
     
-    to_time_str (this: Date) {
-        const [, ampm, time ] = this.to_str().split(' ')
+    to_time_str (this: Date, ms?: boolean) {
+        const [, ampm, time ] = this.to_str(ms).split(' ')
         return `${ampm} ${time}`
     },
 }))
@@ -818,7 +845,8 @@ Object.defineProperties(Array.prototype, {
         },
         
         trim_lines (this: string[], { trim_line = true, rm_empty_lines = true, rm_last_empty_lines = false }: { trim_line?: boolean, rm_empty_lines?: boolean, rm_last_empty_lines?: boolean } = { }) {
-            if (!this.length) return this
+            if (!this.length)
+                return this
             let lines = this
             
             if (trim_line)
@@ -875,6 +903,13 @@ Object.defineProperties(Array.prototype, {
         }
     })
 })
+
+
+Object.defineProperties(BigInt.prototype, to_method_property_descriptors({
+    toJSON (this: bigint) {
+        return this.toString()
+    }
+}))
 
 
 export function to_json (obj: any, replacer?: any) {

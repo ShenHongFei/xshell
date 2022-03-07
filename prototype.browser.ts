@@ -12,13 +12,27 @@ declare global {
          */
         truncate (this: string, width: number): string
         
+        /** pad string to `<width>`  
+            - character?: `' '`
+            - position?: `'right'`
+         */
         pad (this: string, width: number, { character, position }?: { character?: string,  position?: 'left' | 'right'}): string
         
         limit (this: string, width: number, { character, position }?: { character?: string,  position?: 'left' | 'right'}): string
         
-        to_regx (this: string, preservations?: string, flags?: string): RegExp
+        to_regexp (this: string, preservations?: string, flags?: string): RegExp
         
-        /** ```ts
+        to_bool (this: string): boolean
+        
+        /** string pattern replacement  
+            - pattern: match part format
+            - pattern_: replaced format
+            - preservations?: `''` reserved regular expression characters
+            - flags?: `''` regexp matching options
+            - transformer?: `(name, matched) => matched || ''` placeholder transformer
+            - pattern_placeholder?: `/\{.*?\}/g`
+            
+            ```ts
             'g:/acgn/海贼王/[Skytree][海贼王][One_Piece][893][GB_BIG5_JP][X264_AAC][1080P][CRRIP][天空树双语字幕组].mkv'.refmt(  
                 '{dirp}/[Skytree][海贼王][{ en_name: \\w+ }][{ episode: \\d+ }][GB_BIG5_JP][{encoding}_AAC][1080P][CRRIP][天空树双语字幕组].{format}',  
                 'g:/acgn/海贼王/{episode} {encoding}.{format}',  
@@ -33,16 +47,12 @@ declare global {
             
             pattern_: string,
             
-            /** `''` 保留的正则表达式字符 */
             preservations?: string,
             
-            /** `''` 正则匹配选项 */
             flags?: string,
             
-            /** `(name, matched) => matched || ''` placeholder transformer */
             transformer?: (name: string, value: string, placeholders: { [name: string]: string }) => string,
             
-            /** `/\{.*?\}/g` */
             pattern_placeholder?: RegExp
             
         ): string
@@ -74,7 +84,7 @@ declare global {
             
             pattern_placeholder?: RegExp
         
-        ): { [name: string]: string }
+        ): Record<string, string>
         
         
         /** - type?: `'single'` */
@@ -97,7 +107,8 @@ declare global {
         rm (this: string, pattern: string | RegExp, flags?: string): string
         
         
-        // --- 文本处理
+        // --- text processing
+        /** Split the string into lines and remove the '' after the last \n */
         split_lines (this: string): string[]
         
         trim_doc_comment (this: string): string
@@ -114,18 +125,24 @@ declare global {
     
     
     interface Date {
-        to_str (this: Date): string
+        /** - ms?: `false` show to ms */
+        to_str (this: Date, ms?: boolean): string
         
         to_date_str (this: Date): string
         
-        to_time_str (this: Date): string
+        /** - ms?: `false` show to ms */
+        to_time_str (this: Date, ms?: boolean): string
     }
     
     
     interface Number {
+        /** 12.4 KB (1 KB = 1024 B) */
+        to_fsize_str (this: number, units?: 'iec' | 'metric'): string
+        
+        
         to_bin_str (this: number): string
         
-        to_hex_str (this: number): string
+        to_hex_str (this: number, length?: number): string
         
         to_oct_str (this: number): string
     }
@@ -143,6 +160,11 @@ declare global {
         trim_lines (this: string[], { trim_line, rm_empty_lines, rm_last_empty_lines }?: { trim_line?: boolean, rm_empty_lines?: boolean, rm_last_empty_lines?: boolean }): string[]
         
         join_lines (): string
+    }
+    
+    
+    interface BigInt {
+        toJSON (this: bigint): string
     }
 }
 
@@ -212,7 +234,7 @@ Object.defineProperties(String.prototype, {
                 ) continue
                 
                 // surrogates
-                if (code > 0xFFFF)
+                if (code > 0xffff)
                     i++
                 
                 width += is_codepoint_fullwidth(code) ? 2 : 1
@@ -280,16 +302,26 @@ Object.defineProperties(String.prototype, {
         },
         
         
-        to_regx (this: string, preservations: string, flags = ''): RegExp {
+        to_regexp (this: string, preservations: string, flags = ''): RegExp {
             const preserved_chars = new Set(preservations)
             const replace_chars: string = Array.prototype.filter.call('|\\{}()[]^$+*?.-', (c: string) => !preserved_chars.has(c))
                 .map((c: string) =>
                     c === ']' ? '\\]' : c
                 ).join('')
             
-            return new RegExp( this.replace(new RegExp(`[${replace_chars}]`, 'g'), '\\$&'),  flags)
+            return new RegExp(
+                this.replace(
+                    new RegExp(`[${replace_chars}]`, 'g'),
+                    '\\$&'
+                ), 
+                flags
+            )
         },
         
+        
+        to_bool (this: string) {
+            return this.length && this !== '0' && this.toLowerCase() !== 'false'
+        },
         
         refmt (this: string, 
             pattern : string,
@@ -311,7 +343,7 @@ Object.defineProperties(String.prototype, {
                 const part = pattern.slice(left, right)
                 if (part)
                     regx_parts.push(
-                        part.to_regx(preservations).source.bracket()
+                        part.to_regexp(preservations).source.bracket()
                     )
             }
             
@@ -326,7 +358,8 @@ Object.defineProperties(String.prototype, {
                     placeholder_name = placeholder_name.slice(0, -1)
                     optional = true
                 }
-                $placeholders[placeholder_name] = regx_parts.push(placeholder_pattern ? 
+                $placeholders[placeholder_name] = regx_parts.push(
+                    placeholder_pattern ? 
                         `${placeholder_pattern.bracket()}${optional ?  '?' : ''}`
                     :
                         '(.*?)'
@@ -391,7 +424,7 @@ Object.defineProperties(String.prototype, {
             preservations: string = '', 
             flags = '', 
             pattern_placeholder = /\{.*?\}/g
-        ): { [name: string]: string } {
+        ): Record<string, string> {
             // --- 转换 pattern 为 pattern_regx
             let last_end = 0
             
@@ -404,7 +437,7 @@ Object.defineProperties(String.prototype, {
                 const part = pattern.slice(left, right)
                 if (part)
                     regx_parts.push(
-                        part.to_regx(preservations).source.bracket()
+                        part.to_regexp(preservations).source.bracket()
                     )
             }
             
@@ -433,7 +466,7 @@ Object.defineProperties(String.prototype, {
             
             // 最后一个 (.*?) 改为贪心匹配，满足 .{suffix} 的需要
             regx_parts = regx_parts.filter(part => part)
-            if (regx_parts[ regx_parts.length - 1 ] === '(.*?)')
+            if (regx_parts[regx_parts.length - 1] === '(.*?)')
                 regx_parts[regx_parts.length - 1] = '(.*)'
             
             const pattern_regx = new RegExp(regx_parts.join(''), flags)
@@ -453,7 +486,8 @@ Object.defineProperties(String.prototype, {
         },
         
         quote (this: string, type: keyof typeof quotes | 'psh' = 'single') {
-            if (type === 'psh') return '& ' + this.quote()
+            if (type === 'psh')
+                return `& ${this.quote()}`
             return this.surround(quotes[type])
         },
         
@@ -538,7 +572,6 @@ Object.defineProperties(String.prototype, {
                     .replace(new RegExp('([\\)\\]\\}>\u201d<])' + cjk, 'g'), '$1 $2')
             
             return text_
-                // eslint-disable-next-line no-useless-escape
                 .replace(/([\(\[\{<\u201c]+)(\s*)(.+?)(\s*)([\)\]\}>\u201d]+)/g, '$1$3$5')
                 .replace(new RegExp(cjk + '([~!;:,\\.\\?\u2026])([A-Za-z0-9])', 'g'), '$1$2 $3')
                 .replace(new RegExp(cjk + '([A-Za-z0-9`\\$%\\^&\\*\\-=\\+\\\\\\|\\/@\u00a1-\u00ff\u2022\u2027\u2150-\u218f])', 'g'), '$1 $2')
@@ -552,13 +585,13 @@ Object.defineProperties(String.prototype, {
         to_backslash (this: string) {
             return this.replaceAll('/', '\\')
         },
-    }),
+    })
 })
 
 
 // ------------------------------------ Date.prototype
 Object.defineProperties(Date.prototype, to_method_property_descriptors({
-    to_str (this: Date) {
+    to_str (this: Date, ms?: boolean) {
         const [ampm, hour] = (() => {
             let hour = this.getHours()
             if (hour <= 6)
@@ -587,20 +620,35 @@ Object.defineProperties(Date.prototype, to_method_property_descriptors({
             return ['深夜', hour]
         })()
         
+        const zero_padding = { character: '0', position: 'left' } as const
         
         return '' +
             // year.month.date
-            `${this.getFullYear()}.${String(this.getMonth() + 1).pad(2, { character: '0', position: 'left' })}.${String(this.getDate()).pad(2, { character: '0', position: 'left' })} ` +
-            // 上午 10:03:02
-            `${ampm} ${String(hour).pad(2, { character: '0', position: 'left' })}:${String(this.getMinutes()).pad(2, { character: '0', position: 'left' })}:${String(this.getSeconds()).pad(2, { character: '0', position: 'left' })}`
+            this.getFullYear() + '.' + 
+            String(this.getMonth() + 1).pad(2, zero_padding) + '.' + 
+            String(this.getDate()).pad(2, zero_padding) + ' ' +
+            
+            // 上午
+            ampm + ' ' +
+            
+            // 10:03:02
+            String(hour).pad(2, zero_padding) + ':' +
+            String(this.getMinutes()).pad(2, zero_padding) + ':' +
+            String(this.getSeconds()).pad(2, zero_padding) + 
+            
+            (ms ?
+                '.' + String(this.getMilliseconds()).pad(3, zero_padding)
+            :
+                ''
+            )
     },
     
     to_date_str (this: Date) {
         return this.to_str().split(' ')[0]
     },
     
-    to_time_str (this: Date) {
-        const [, ampm, time ] = this.to_str().split(' ')
+    to_time_str (this: Date, ms?: boolean) {
+        const [, ampm, time ] = this.to_str(ms).split(' ')
         return `${ampm} ${time}`
     },
 }))
@@ -638,8 +686,8 @@ Object.defineProperties(Array.prototype, {
     // --- 文本处理工具方法
     ... to_method_property_descriptors({
         trim_lines (this: string[], { trim_line = true, rm_empty_lines = true, rm_last_empty_lines = false }: { trim_line?: boolean, rm_empty_lines?: boolean, rm_last_empty_lines?: boolean } = { }) {
-            if (!this.length) return this
-            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            if (!this.length)
+                return this
             let lines = this
             
             if (trim_line)
@@ -675,24 +723,32 @@ Object.defineProperties(Array.prototype, {
 })
 
 
-export function to_json (object: any, replacer?: any) {
-    return JSON.stringify(object, replacer, 4)
+Object.defineProperties(BigInt.prototype, to_method_property_descriptors({
+    toJSON (this: bigint) {
+        return this.toString()
+    }
+}))
+
+
+export function to_json (obj: any, replacer?: any) {
+    return JSON.stringify(obj, replacer, 4) + '\n'
 }
 
 export function is_codepoint_fullwidth (codepoint: number) {
-    // Code points are derived from:
+    // code points are derived from:
     // http://www.unix.org/Public/UNIDATA/EastAsianWidth.txt
     return (
         !Number.isNaN(codepoint) &&
         codepoint >= 0x1100 &&
         (
-            codepoint <= 0x115F || // Hangul Jamo
+            codepoint <= 0x115f || // hangul jamo
             
+            codepoint === 0x201c || codepoint === 0x201d ||  // 
             codepoint === 0x2026 ||  // …
-            codepoint === 0x203B ||  // ※
+            codepoint === 0x203b ||  // ※
             
             // arrows
-            (0x2190 <= codepoint && codepoint <= 0x21ff) ||
+            (0x2190 <= codepoint && codepoint <= 0x21FF) ||
             
             codepoint === 0x2329 || // left-pointing angle bracket
             codepoint === 0x232a || // right-pointing angle bracket
@@ -713,7 +769,7 @@ export function is_codepoint_fullwidth (codepoint: number) {
             (0x3250 <= codepoint && codepoint <= 0x4dbf) ||
             
             // cjk unified ideographs .. yi radicals
-            (0x4e00 <= codepoint && codepoint <= 0xa4c6) ||
+            (0x4E00 <= codepoint && codepoint <= 0xA4C6) ||
             
             // hangul jamo extended-a
             (0xa960 <= codepoint && codepoint <= 0xa97c) ||
@@ -745,6 +801,3 @@ export function is_codepoint_fullwidth (codepoint: number) {
         )
     )
 }
-
-
-
