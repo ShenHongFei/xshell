@@ -223,6 +223,11 @@ declare global {
     interface BigInt {
         toJSON (this: bigint): string
     }
+    
+    
+    interface Error {
+        toJSON (this: Error): string
+    }
 }
 
 
@@ -910,6 +915,17 @@ Object.defineProperties(BigInt.prototype, to_method_property_descriptors({
         return this.toString()
     }
 }))
+
+Object.defineProperties(Error.prototype, to_method_property_descriptors({
+    toJSON (this: Error) {
+        return Object.fromEntries(
+            Object.getOwnPropertyNames(this)
+                .map(name => 
+                    [name, this[name]])
+        )
+    }
+}))
+
 
 
 export function to_json (obj: any, replacer?: any) {

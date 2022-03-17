@@ -7,7 +7,7 @@ import { readdirAsync } from 'readdir-enhanced'
 import fse from 'fs-extra'
 import rimraf from 'rimraf'
 
-import debounce from 'lodash/debounce'
+import debounce from 'lodash/debounce.js'
 
 
 import MFS from 'memfs'
@@ -18,9 +18,10 @@ declare module 'memfs' {
     }
 }
 
-import { to_json } from './prototype'
-import { dedent } from './utils'
-export * from './ufs'
+import { to_json } from './prototype.js'
+import { dedent } from './utils.js'
+export * from './ufs.js'
+
 
 export { MFS }
 
@@ -56,11 +57,11 @@ export async function fread (fp: string, {
     if (dir)
         fp = path.join(dir, fp)
     else if (!path.isAbsolute(fp))
-        throw new Error('fp must be absolute path, or pass in "dir" parameter')
+        throw new Error('fp must be absolute path, or pass in \'dir\' parameter')
     
     if (print)
         console.log(`read: ${fp}`)
-        
+    
     const buffer = await fsp.readFile(fp)
     
     if (encoding === 'binary')
@@ -221,10 +222,15 @@ export async function fcopy (src: string, dst: string, {
     print?: boolean
     overwrite?: boolean
 } = { }) {
-    if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
-    if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
+    if (src.endsWith('/') !== dst.endsWith('/'))
+        throw new Error('src and dst must be both file path or directory path')
+    
+    if (!path.isAbsolute(src) || !path.isAbsolute(dst))
+        throw new Error('src and dst must be absolute path')
+    
     if (print)
         console.log(`copy: ${src} → ${dst}`)
+    
     await fse.copy(src, dst, { overwrite, errorOnExist: true })
 }
 
@@ -242,10 +248,15 @@ export async function fmove (src: string, dst: string, {
     overwrite?: boolean
     print?: boolean
 } = { }) {
-    if (src.endsWith('/') !== dst.endsWith('/')) throw new Error('src and dst must be both file path or directory path')
-    if (!path.isAbsolute(src) || !path.isAbsolute(dst)) throw new Error('src and dst must be absolute path')
+    if (src.endsWith('/') !== dst.endsWith('/'))
+        throw new Error('src and dst must be both file path or directory path')
+    
+    if (!path.isAbsolute(src) || !path.isAbsolute(dst))
+        throw new Error('src and dst must be absolute path')
+    
     if (print)
         console.log(`move: ${src} → ${dst}`)
+    
     await fse.move(src, dst, { overwrite })
 }
 
@@ -365,7 +376,7 @@ export let fwatchers: Record<string, fs.FSWatcher> = { }
     save fs.FSWatcher in watchers, subsequent call will auto close existing watcher for the same fp
     
     https://nodejs.org/dist/latest-v15.x/docs/api/fs.html#fs_fs_watch_filename_options_listener  
-    The listener callback gets two arguments (event, filename). 
+    The listener callback gets two arguments (event, fname). 
         event is either 'rename' or 'change', and filename is the name of the file which triggered the event.
         On most platforms, 'rename' is emitted whenever a filename appears or disappears in the directory.
     
@@ -373,25 +384,33 @@ export let fwatchers: Record<string, fs.FSWatcher> = { }
     
 */
 export async function fwatch (
-    fp: string, 
-    onchange: (event: string, filename: string) => any,
+    fp: string,
+    onchange: (event: string, fname: string) => any, 
     { exec = true }: { exec?: boolean } = { }
 ) {
-    if (!path.isAbsolute(fp)) throw new Error('fp must be absolute path')
+    if (!path.isAbsolute(fp))
+        throw new Error('fp must be absolute path')
     
     const _watcher = fwatchers[fp]
     if (_watcher)
         _watcher.close()
     
     if (exec)
-        await onchange('change', fp)
+        await onchange('change', fp.fname)
     
-    const debounced_onchange = debounce((event, filename) => {
-        console.log(`file changed (${event}): ${filename}`)
-        onchange(event, path.normalize(filename))
-    }, 500, { leading: false, trailing: true })
-    const watcher = watch(fp, debounced_onchange)
-    watcher.on('error', error => { console.error(error) })
+    const debounced_onchange = debounce(
+        (event, fname) => {
+            console.log(`file changed (${event}): ${fname}`)
+            onchange(event, path.normalize(fname))
+        },
+        500,
+        { leading: false, trailing: true }
+    )
+    
+    let watcher = watch(fp, debounced_onchange)
+    watcher.on('error', error => {
+        console.error(error)
+    })
     return fwatchers[fp] = watcher
 }
 

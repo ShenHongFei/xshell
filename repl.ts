@@ -22,9 +22,9 @@ import {
 import type { Context } from 'koa'
 
 
-import './prototype'
-import { log_section, log_line, delay, inspect, set_inspect_options } from './utils'
-import { fread, fwrite, fwatchers, create_mfs, set_ufs, UFS } from './file'
+import './prototype.js'
+import { log_section, log_line, delay, inspect, set_inspect_options } from './utils.js'
+import { fread, fwrite, fwatchers, create_mfs, set_ufs, UFS } from './file.js'
 import { fp_root } from './process.js'
 
 
@@ -481,21 +481,21 @@ export async function eval_ts (code: string) {
 
 
 // ------------------------------------ repl
-export async function repl_code (type: string, ...args: any[]) {
+export async function repl_code (type: 'ts', ...args: any[]) {
     log_line()
     
     // --- run code
-    global.__ = await global['eval_' + type](...args)
+    const __ = global.__ = await eval_ts(...(args as [string]))
     
     log_line()
     
-    if (type !== 'shell')
-        console.log(
-            inspect(global.__, { limit: inspection_limit })
-        )
+    console.log(
+        inspect(__, { limit: inspection_limit })
+    )
     
+    console.log('\n\n')
     
-    console.log('\n'.repeat(2))
+    return __
 }
 
 

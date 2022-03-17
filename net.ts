@@ -12,6 +12,8 @@ import { RequestError, StatusCodeError } from 'request-promise-native/errors.js'
 
 import promise_retry from 'promise-retry'
 
+import { WebSocket } from 'ws'
+
 import iconv from 'iconv-lite'
 import cheerio from 'cheerio'
 import qs from 'qs'
@@ -26,7 +28,7 @@ declare module 'tough-cookie' {
 
 import './prototype.js'
 import type { Encoding } from './file.js'
-import { inspect, output_width } from './utils.js'
+import { inspect, output_width, concat } from './utils.js'
 
 export enum MyProxy {
     socks5  = 'http://localhost:10080',
@@ -340,6 +342,7 @@ export function parse_html (html: string) {
     Object.defineProperty($.prototype, inspect.custom, {
         configurable: true,
         enumerable: false,
+        // @ts-ignore
         value (this: cheerio.Cheerio) {
             if (this.length > 1)
                 return this.map((index, element) => {
@@ -422,4 +425,320 @@ export function rpc_curl (func: string, args: any[]) {
             to_curl('http://localhost:8421/api/rpc', { queries: { func, args } })
     return cmd
 }
+
+
+let decoder = new TextDecoder()
+
+let encoder = new TextEncoder()
+
+
+export async function connect_websocket (
+    url: string | URL,
+    {
+        protocols,
+        max_payload = 2 ** 33,  // 8 GB
+        on_open,
+        on_close,
+        on_error,
+        on_message
+    }: {
+        protocols?: string | string[]
+        max_payload?: number
+        on_open? (event: any, websocket: WebSocket): any
+        on_close? (event: { code: number, reason: string }, websocket: WebSocket): any
+        on_error? (event: any, websocket: WebSocket): any
+        on_message (event: { data: ArrayBuffer }, websocket: WebSocket): any
+    }
+) {
+    let websocket = new WebSocket(url, protocols, { maxPayload: max_payload })
+    
+    // https://stackoverflow.com/questions/11821096/what-is-the-difference-between-an-arraybuffer-and-a-blob/39951543
+    websocket.binaryType = 'arraybuffer'
+    
+    return new Promise<WebSocket>((resolve, reject) => {
+        websocket.addEventListener('open', async event => {
+            console.log(`${websocket.url} opened`)
+            
+            await on_open?.(event, websocket)
+            
+            resolve(websocket)
+        })
+        
+        websocket.addEventListener('close', event => {
+            console.log(`${websocket.url} closed with code = ${event.code}, reason = '${event.reason}'`)
+            on_close?.(event, websocket)
+        })
+        
+        websocket.addEventListener('error', event => {
+            const message = `${websocket.url} errored`
+            console.error(message, event)
+            on_error?.(event, websocket)
+            reject(
+                Object.assign(
+                    new Error(message),
+                    { event }
+                )
+            )
+        })
+        
+        websocket.addEventListener('message', event => {
+            on_message(event as any, websocket)
+        })
+    })
+}
+
+
+/** 二进制消息格式 
+    - json.length (小端序): 4 字节
+    - json 数据
+    - binary 数据
+*/
+export interface Message <T extends any[] = any[]> {
+    /** 本次 rpc 的 id */
+    id?: number
+    
+    /** rpc 发起方指定被调用的 function name, 多个相同 id, func 的 message 组成一个请求流 */
+    func?: string
+    
+    /** 等待执行，但不要序列化返回 func 的执行结果 (message 中无 args) */
+    ignore?: boolean
+    
+    /** 不等待 func 执行，remote 收到后直接确认返回 (message 中 done = true) */
+    async?: boolean
+    
+    /** 这个数组里面要么是对应的 JS 参数，要么是 Uint8Array 参数对应的 binary length  
+        args 可以是:  
+        - rpc 发起方调用 func 的参数，或者请求流 message 携带的数据
+        - 作为结果或者响应流的 message 数据，传给请求发起方
+    */
+    args?: T
+    
+    /** bins: 哪几个 arg 是 Uint8Array 类型的，如: [0, 3] */
+    bins?: number[]
+    
+    /** 被调方执行 func 产生的错误 */
+    error?: Error
+    
+    /** 如果请求或者响应是一个流，通过这个 flag 表明是最后一个 message, 并且可以销毁 handler 了 */
+    done?: boolean
+}
+
+/** 通过创建 Remote 对象对 WebSocket RPC 进行抽象  
+    调用方使用 remote.call 进行调用  
+    被调方在创建 Remote 对象时传入 funcs 注册处理函数，并使用 Remote.handle 方法处理 WebSocket message  
+*/
+export class Remote {
+    url: string
+    
+    websocket: WebSocket
+    
+    id = 0
+    
+    /** 被调方的 message 处理器 */
+    funcs: Record<
+        string, 
+        (message: Message, websocket?: WebSocket) => void | Promise<void>
+    >
+    
+    /** 调用方发起的 rpc 对应响应的 message 处理器 */
+    handlers: ((message: Message) => any)[] = [ ]
+    
+    print = false
+    
+    get connected () {
+        return this.websocket?.readyState === WebSocket.OPEN
+    }
+    
+    
+    static parse <T extends any[] = any[]> (array_buffer: ArrayBuffer) {
+        const buf = new Uint8Array(array_buffer as ArrayBuffer)
+        const dv = new DataView(array_buffer)
+        
+        const len_json = dv.getUint32(0, true)
+        
+        let offset = 4 + len_json
+        
+        let message: Message<T> = JSON.parse(
+            decoder.decode(
+                buf.subarray(4, offset)
+            )
+        )
+        
+        message.args ||= [ ] as T
+        
+        if (message.bins) {
+            let args = message.args
+            
+            for (const ibin of message.bins) {
+                const len_buf = args[ibin]
+                args[ibin] = buf.subarray(offset, offset + len_buf)
+                offset += len_buf
+            }
+        }
+        
+        return message
+    }
+    
+    
+    static pack ({
+        id,
+        func,
+        ignore,
+        async: _async,
+        done,
+        error,
+        args: _args = [ ],
+    }: Message) {
+        let args = [..._args]
+        
+        let bins: number[] = [ ]
+        let bufs: Uint8Array[] = [ ]
+        
+        for (let i = 0;  i < args.length;  i++) {
+            const arg = args[i]
+            if (arg instanceof Uint8Array) {
+                bins.push(i)
+                bufs.push(arg)
+                args[i] = arg.length
+            }
+        }
+        
+        const data_json = {
+            id,
+            ... func ? { func } : { },
+            ... ignore ? { ignore } : { },
+            ... _async ? { async: _async } : { },
+            ... done ? { done } : { },
+            ... error ? { error } : { },
+            ... args.length ? { args } : { },
+            ... bins.length ? { bins } : { },
+        }
+        
+        const str_json = encoder.encode(
+            JSON.stringify(data_json)
+        )
+        
+        let dv = new DataView(
+            new ArrayBuffer(4)
+        )
+        
+        dv.setUint32(0, str_json.length, true)
+        
+        return concat([
+            dv,
+            str_json,
+            ... bufs
+        ])
+    }
+    
+    
+    constructor ({
+        url,
+        funcs = { },
+        websocket,
+    }: {
+        url?: string
+        funcs?: Remote['funcs']
+        websocket?: WebSocket
+    } = { }) {
+        this.url = url
+        this.funcs = funcs
+        this.websocket = websocket
+    }
+    
+    
+    async connect () {
+        this.websocket = await connect_websocket(this.url, {
+            on_message: this.handle.bind(this)
+        })
+    }
+    
+    
+    disconnect () {
+        this.websocket?.close()
+        this.id = 0
+        this.handlers = [ ]
+    }
+    
+    
+    send (message: Message, websocket = this.websocket) {
+        if (!('id' in message))
+            message.id = this.id
+        
+        websocket.send(
+            Remote.pack(message)
+        )
+    }
+    
+    
+    /** 调用 remote 中的 func, 返回结果由 handler 处理，处理 done message 之后的返回值作为 call 函数的返回值 */
+    async call <T extends any[] = any[], R = any> (
+        message: Message,
+        handler: (message: Message<T>) => any
+    ) {
+        return new Promise<R>((resolve, reject) => {
+            this.handlers[this.id] = async (message: Message<T>) => {
+                const { error, done } = message
+                
+                if (error) {
+                    reject(
+                        Object.assign(
+                            new Error(),
+                            error
+                        )
+                    )
+                    return
+                }
+                
+                let result = await handler(message)
+                
+                if (done)
+                    resolve(result)
+            }
+            
+            this.send(message)
+            
+            this.id++
+        })
+    }
+    
+    
+    /** 处理接收到的 WebSocket message
+        1. 被调用方接收 message 并开始处理
+        2. 调用方处理 message 响应
+    */
+    async handle (event: { data: ArrayBuffer }, websocket: WebSocket) {
+        const message = Remote.parse(event.data)
+        const { func, id, done } = message
+        
+        if (this.print)
+            console.log(message)
+        
+        if (func) // 作为被调方
+            try {
+                const handler = this.funcs[func] || this.funcs.default
+                
+                if (!handler)
+                    throw new Error(`找不到 rpc handler: ${func}`)
+                
+                await handler(message, websocket)
+            } catch (error) {
+                this.send(
+                    {
+                        id: message.id,
+                        error,
+                        done: true
+                    },
+                    websocket
+                )
+                throw error
+            }
+        else {  // 作为发起方
+            this.handlers[id](message)
+            if (done)
+                this.handlers[id] = null
+        }
+    }
+}
+
 
