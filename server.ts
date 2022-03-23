@@ -63,13 +63,22 @@ declare module 'http' {
 }
 
 // ------------ my server
-export const server = {
-    app: null as Koa,
+export class Server {
+    app: Koa
     
-    handler: null as ReturnType<Koa['callback']>,
+    handler: ReturnType<Koa['callback']>
     
-    server_80: null as HttpServer,
+    port: number
     
+    server_http: HttpServer
+    
+    enable_rpc: boolean
+    
+    
+    constructor (port: number, { rpc = false }: { rpc?: boolean }) {
+        this.port = port
+        this.enable_rpc = rpc
+    }
     
     /** start http server and listen */
     async start () {
@@ -101,23 +110,25 @@ export const server = {
         )
         app.use(KoaUserAgent)
         
-        app.use(this.router.bind(this))
+        app.use(
+            this._router.bind(this)
+        )
         
         this.app = app
         
         this.handler = this.app.callback()
         
-        this.server_80  = http_create_server(this.handler)
+        this.server_http = http_create_server(this.handler)
         
         await new Promise<void>(resolve => {
-            this.server_80.listen(8421, resolve)
+            this.server_http.listen(this.port, resolve)
         })
-    },
+    }
     
     
     stop () {
-        this.server_80.close()
-    },
+        this.server_http.close()
+    }
     
     
     async entry (ctx: Context, next: Next) {
@@ -135,7 +146,7 @@ export const server = {
             response.body = inspect(error, { colors: false })
             response.type = 'text/plain'
         }
-    },
+    }
     
     
     /** 
@@ -170,10 +181,10 @@ export const server = {
             throw new Error('multipart/form-data is not supported')
         } else
             request.body = req.body
-    },
+    }
     
     
-    async router (ctx: Context, next: Next) {
+    async _router (ctx: Context, next: Next) {
         let { request } = ctx
         const _path = request._path = decodeURIComponent(request.path)
         Object.defineProperty(request, 'path', {
@@ -186,7 +197,7 @@ export const server = {
         const { path }  = request
         
         // ------------ /repl/rpc
-        if (path === '/api/rpc') {
+        if (path === '/api/rpc' && this.enable_rpc) {
             await this.rpc(ctx)
             return
         }
@@ -198,9 +209,17 @@ export const server = {
         // ------------ repl_router hook
         if (await global.repl_router?.(ctx))
             return
+            
+        if (await this.router(ctx))
+            return
         
         await next?.()
-    },
+    }
+    
+    
+    async router (ctx: Context): Promise<boolean> {
+        return false
+    }
     
     
     /** args are array http://localhost/repl/rpc?func=to_json&args=aaa&args=bbb  
@@ -262,7 +281,7 @@ export const server = {
             error.status = 500
             throw error
         }
-    },
+    }
     
     
     logger (ctx: Context) {
@@ -360,7 +379,7 @@ export const server = {
         
         // --- print log
         console.log(s)
-    },
+    }
     
     
     async try_send (
@@ -400,7 +419,7 @@ export const server = {
                 _log_404()
             return false
         }
-    },
+    }
     
     
     /** send file at `path` with the  given `options` to the koa `ctx`. */
@@ -538,7 +557,3 @@ export const server = {
     }
 }
 
-
-export default server
-
-export type Server = typeof server

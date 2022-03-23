@@ -67,6 +67,8 @@ const {
 } = ts
 
 
+let server: import('./server').Server
+
 let inspection_limit    = 10000
 let printing_compiled_js = false
 
@@ -542,7 +544,8 @@ export async function start_repl () {
         (async () => {
             // --- http server
             log_section('server is initializing', { color: 'green', time: true })
-            let { server } = await import('./server.js')
+            let { Server } = await import('./server.js')
+            server = new Server(8421, { rpc: true })
             await server.start()
             log_section('server initialized', { color: 'green', time: true })
         })(),
@@ -559,8 +562,7 @@ export async function stop () {
     for (const key in fwatchers)
         fwatchers[key].close()
     
-    ;(await import('./server.js'))
-        .server.stop()
+    server.stop()
 }
 
 export async function exit () {
