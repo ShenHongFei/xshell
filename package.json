@@ -1,7 +1,7 @@
 {
     "name": "xshell",
-    "version": "0.0.36",
-    "main": "./extension.js",
+    "version": "0.0.37",
+    "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js",
         "i18n-scan": "./i18n/i18n-scan.js"

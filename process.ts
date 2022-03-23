@@ -204,12 +204,12 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
     
     const cmd = 
         (exe.includes(' ') ? exe.quote() : exe) + 
-        args.length ? (
-            ' ' + 
-            args.map(arg => 
+        (args.length ? (
+            ' ' + args.map(arg => 
                 arg.includes(' ') ? arg.quote() : arg
-            ).join(' ')
-        ) : ''
+            ).join(' '))
+        :
+            '')
     
     if (print.command)
         console.log(cmd.blue)
