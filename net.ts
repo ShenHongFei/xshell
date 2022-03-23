@@ -457,7 +457,7 @@ export async function connect_websocket (
     
     return new Promise<WebSocket>((resolve, reject) => {
         websocket.addEventListener('open', async event => {
-            console.log(`${websocket.url} opened`)
+            console.log(`websocket opened: ${websocket.url}`)
             
             await on_open?.(event, websocket)
             
@@ -465,13 +465,12 @@ export async function connect_websocket (
         })
         
         websocket.addEventListener('close', event => {
-            console.log(`${websocket.url} closed with code = ${event.code}, reason = '${event.reason}'`)
+            console.log(`websocket closed: ${websocket.url} (code = ${event.code}, reason = '${event.reason}')`)
             on_close?.(event, websocket)
         })
         
         websocket.addEventListener('error', event => {
-            const message = `${websocket.url} errored`
-            console.error(message, event)
+            const message = `websocket errored: ${websocket.url}`
             on_error?.(event, websocket)
             reject(
                 Object.assign(

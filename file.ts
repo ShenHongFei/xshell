@@ -156,7 +156,7 @@ export async function flist (fpd: string, {
         stats: false,
     })
     
-    let fps_ = [ ]
+    let fps_: string[] = [ ]
     
     const filter_regexp = filter instanceof RegExp
     const filter_fn = Boolean(filter && !filter_regexp)
@@ -317,7 +317,10 @@ export async function fmkdir (fpd: string, options: fs.MakeDirectoryOptions & { 
 }
 
 
-/** - link: can be file path or directory path */
+/** 
+    - fp_real: current real file path
+    - fp_link: file path or directory path
+*/
 export async function flink (
     fp_real: string, 
     fp_link: string, 

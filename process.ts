@@ -29,15 +29,14 @@ interface StartOptions {
     
     /** `true` print option (with details) */
     print?: boolean | {
-            command?: boolean
-            stdout?: boolean
-            stderr?: boolean
-            code?: boolean
-            error?: boolean
-        }
+        stdout: boolean
+        stderr: boolean
+        command: boolean
+        code: boolean
+    }
     
     /** `'pipe'` when 'ignore' then ignore stdio processing */
-    stdio?: 'pipe' | 'ignore'
+    stdio?: 'pipe' | 'ignore' | ['pipe' | 'ignore' | 'inherit', 'pipe' | 'ignore' | 'inherit', 'pipe' | 'ignore' | 'inherit']
     
     /** `false` whether to break the connection with child (ignore stdio, unref) */
     detached?: boolean
@@ -54,7 +53,7 @@ interface StartOptions {
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
-export function start (exe: string, args: string[] = [], {
+export function start (exe: string, args: string[] = [ ], {
     cwd = fp_root,
     
     encoding = 'utf-8',
@@ -66,7 +65,6 @@ export function start (exe: string, args: string[] = [], {
     detached = false,
     
     env,
-    
 }: StartOptions = { }): ChildProcess {
     const options: SpawnOptions = {
         cwd,
@@ -78,7 +76,18 @@ export function start (exe: string, args: string[] = [], {
         } : { },
     }
     
-    if (print)
+    if (typeof print === 'boolean')
+        print = {
+            stdout: print,
+            stderr: print,
+            command: print,
+            code: print,
+        }
+    
+    if (typeof stdio === 'string')
+        stdio = [stdio, stdio, stdio]
+    
+    if (print.command)
         console.log(`${exe} ${ args.map(arg => arg.includes(' ') ? arg.quote() : arg).join(' ') }`.blue)
     
     if (detached) {
@@ -94,33 +103,43 @@ export function start (exe: string, args: string[] = [], {
     
     let child = spawn(exe, args, options)
     
-    if (stdio === 'pipe')
-        child.stdin.setDefaultEncoding('utf8')
-    
-    // prevent child spawn error crashing nodejs process
+    // 防止 child spawn 失败时 crash nodejs 进程
     child.on('error', error => {
         console.error(error)
     })
     
-    if (stdio === 'ignore')
+    if (stdio[0] === 'pipe')
+        child.stdin.setDefaultEncoding('utf8')
+    
+    if (
+        stdio.every(s => 
+            s === 'ignore')
+    )
         return child
     
     if (encoding !== 'binary') {
-        if (encoding === 'utf-8') {
-            child.stdout.setEncoding('utf-8')
-            child.stderr.setEncoding('utf-8')
-        } else {
-            child.stdout = child.stdout.pipe(
-                iconv.decodeStream(encoding)
-            ) as any as Readable
-            child.stderr = child.stderr.pipe(
-                iconv.decodeStream(encoding)
-            ) as any as Readable
+        if (stdio[1] === 'pipe') {
+            if (encoding === 'utf-8')
+                child.stdout.setEncoding('utf-8')
+            else
+                child.stdout = child.stdout.pipe(
+                    iconv.decodeStream(encoding)
+                ) as any as Readable
+            
+            if (print.stdout)
+                child.stdout.pipe(process.stdout, { end: false })
         }
         
-        if (print) {
-            child.stdout.pipe(process.stdout, { end: false })
-            child.stderr.pipe(process.stderr, { end: false })
+        if (stdio[2] === 'pipe') {
+            if (encoding === 'utf-8')
+                child.stderr.setEncoding('utf-8')
+            else
+                child.stderr = child.stderr.pipe(
+                    iconv.decodeStream(encoding)
+                ) as any as Readable
+            
+            if (print.stderr)
+                child.stderr.pipe(process.stderr, { end: false })
         }
     }
     
@@ -163,30 +182,42 @@ export async function call (exe: string, args?: string[], options?: CallOptions 
 export async function call (exe: string, args: string[] = [], options: CallOptions = { }): Promise<CallResult<string | Buffer>> {
     const {
         encoding = 'utf-8', 
-        print = true,
         throw_code = true,
-        input
+        input,
     } = options
     
-    const print_options = typeof print === 'boolean' ?
-            {
-                command: print,
-                stdout: print,
-                stderr: print,
-                code: print,
-                error: print
-            }
-        :
-            print
+    let {
+        stdio = 'pipe',
+        print = true
+    } = options
     
-    const cmd = `${exe} ${ args.map(arg => arg.includes(' ') ? arg.quote() : arg).join(' ') }`
+    if (typeof print === 'boolean')
+        print = {
+            command: print,
+            stdout: print,
+            stderr: print,
+            code: print,
+        }
     
-    if (print_options.command)
+    if (typeof stdio === 'string')
+        stdio = [stdio, stdio, stdio]
+    
+    const cmd = 
+        (exe.includes(' ') ? exe.quote() : exe) + 
+        args.length ? (
+            ' ' + 
+            args.map(arg => 
+                arg.includes(' ') ? arg.quote() : arg
+            ).join(' ')
+        ) : ''
+    
+    if (print.command)
         console.log(cmd.blue)
     
-    options.print = false
-    
-    let child = start(exe, args, options)
+    let child = start(exe, args, {
+        ...options,
+        print: false,
+    })
     
     if (input)
         child.stdin.write(input)
@@ -200,31 +231,33 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
     
     await Promise.all([
         new Promise<void>(resolve => {
-            child.on('exit', (_code, _signal) => {
+            child.once('exit', (_code, _signal) => {
                 code = _code
                 signal = _signal
                 resolve()
             })
         }),
         (async () => {
-            for await (const chunk of child.stdout as AsyncIterable<string | Buffer>) {
-                if (encoding !== 'binary' && print_options.stdout)
-                    process.stdout.write(chunk)
-                stdouts.push(chunk)
-            }
+            if (stdio[1] === 'pipe')
+                for await (const chunk of child.stdout as AsyncIterable<string | Buffer>) {
+                    if (encoding !== 'binary' && print.stdout)
+                        process.stdout.write(chunk)
+                    stdouts.push(chunk)
+                }
         })(),
         (async () => {
-            for await (const chunk of child.stderr as AsyncIterable<string | Buffer>) {
-                if (encoding !== 'binary' && print_options.stderr)
-                    process.stderr.write(chunk)
-                stderrs.push(chunk)
-            }
+            if (stdio[2] === 'pipe')
+                for await (const chunk of child.stderr as AsyncIterable<string | Buffer>) {
+                    if (encoding !== 'binary' && print.stderr)
+                        process.stderr.write(chunk)
+                    stderrs.push(chunk)
+                }
         })()
     ])
     
-    const message = `process(${ child.pid }) '${ cmd }' exited ${ code }${ signal ? `, by signal ${ signal }` : '' }.`
+    const message = `process(${child.pid}) (${cmd}) exited ${code}${ signal ? `, by signal ${ signal }` : '' }.`
     
-    if (print_options.code || code || signal)
+    if (print.code || code || signal)
         console.log(message[code || signal ? 'red' : 'blue'])
     
     const result = {
