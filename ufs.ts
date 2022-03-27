@@ -183,11 +183,3 @@ export class UFS {
         return iterate(0, null)
     }
 }
-
-export let ufs: UFS
-
-export function set_ufs (_ufs: UFS) {
-    ufs = _ufs
-}
-
-export default UFS

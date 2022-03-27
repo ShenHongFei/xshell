@@ -1,5 +1,4 @@
 import nvm from 'vm'
-import fs from 'fs'
 import repl from 'repl'
 import process from 'process'
 
@@ -24,7 +23,7 @@ import type { Context } from 'koa'
 
 import './prototype.js'
 import { log_section, log_line, delay, inspect, set_inspect_options } from './utils.js'
-import { fread, fwrite, fwatchers, create_mfs, set_ufs, UFS } from './file.js'
+import { fread, fwrite, fwatchers } from './file.js'
 import { fp_root } from './process.js'
 
 
@@ -508,12 +507,6 @@ export async function start_repl () {
     log_mod_loaded('prototype')
     log_mod_loaded('utils')
     log_mod_loaded('file')
-    
-    const mfs = create_mfs()
-    set_ufs(
-        new UFS([mfs, fs])
-    )
-    log_mod_loaded('ufs')
     
     log_mod_loaded('process')
     log_mod_loaded('net')

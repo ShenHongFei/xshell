@@ -29,7 +29,7 @@ export type Encoding = 'utf-8' | 'gb18030' | 'shift-jis' | 'binary'
 
 
 export function create_mfs () {
-    mfs = MFS.createFsFromVolume(
+    let mfs = MFS.createFsFromVolume(
         new MFS.Volume()
     )
     
@@ -38,8 +38,6 @@ export function create_mfs () {
     
     return mfs
 }
-
-export let mfs: MFS.IFs
 
 
 export async function fread (fp: string): Promise<string>

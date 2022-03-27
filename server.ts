@@ -47,7 +47,7 @@ declare module 'koa' {
 // --- my libs
 import { request as _request } from './net.js'
 import { stream_to_buffer, inspect, output_width } from './utils.js'
-import { ufs, type UFS } from './file.js'
+import { type UFS } from './file.js'
 
 
 declare module 'http' {
@@ -386,7 +386,7 @@ export class Server {
         ctx: Context, 
         fp: string,
         {
-            fs = ufs, 
+            fs,
             root,
             log_404,
         }: {
