@@ -1,6 +1,6 @@
 {
     "name": "xshell",
-    "version": "0.0.39",
+    "version": "0.0.40",
     "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js",
@@ -97,7 +97,7 @@
         "promise-retry": "^2.0.1",
         "qs": "^6.10.3",
         "react": "^17.0.2",
-        "react-i18next": "^11.16.1",
+        "react-i18next": "^11.16.2",
         "readdir-enhanced": "^6.0.4",
         "request": "^2.88.2",
         "request-promise-native": "^1.0.9",
