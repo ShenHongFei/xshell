@@ -53,7 +53,7 @@ interface StartOptions {
         - stdio?: `'pipe'` when 'ignore' then ignore stdio processing
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
-export function start (exe: string, args: string[] = [ ], {
+export async function start (exe: string, args: string[] = [ ], {
     cwd = fp_root,
     
     encoding = 'utf-8',
@@ -65,7 +65,7 @@ export function start (exe: string, args: string[] = [ ], {
     detached = false,
     
     env,
-}: StartOptions = { }): ChildProcess {
+}: StartOptions = { }): Promise<ChildProcess> {
     const options: SpawnOptions = {
         cwd,
         shell: false,
@@ -152,7 +152,7 @@ export interface CallOptions extends StartOptions {
     input?: string
 }
 
-export interface CallResult<T = string> {
+export interface CallResult <T = string> {
     pid: number
     stdout: T
     stderr: T
@@ -179,7 +179,7 @@ export interface CallResult<T = string> {
 export async function call (exe: string, args?: string[]): Promise<CallResult<string>>
 export async function call (exe: string, args?: string[], options?: CallOptions & { encoding?: 'utf-8' | 'gb18030' }): Promise<CallResult<string>>
 export async function call (exe: string, args?: string[], options?: CallOptions & { encoding: 'binary' }): Promise<CallResult<Buffer>>
-export async function call (exe: string, args: string[] = [], options: CallOptions = { }): Promise<CallResult<string | Buffer>> {
+export async function call (exe: string, args: string[] = [ ], options: CallOptions = { }): Promise<CallResult<string | Buffer>> {
     const {
         encoding = 'utf-8', 
         throw_code = true,
@@ -214,7 +214,7 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
     if (print.command)
         console.log(cmd.blue)
     
-    let child = start(exe, args, {
+    let child = await start(exe, args, {
         ...options,
         print: false,
     })
@@ -255,7 +255,7 @@ export async function call (exe: string, args: string[] = [], options: CallOptio
         })()
     ])
     
-    const message = `process(${child.pid}) (${cmd}) exited ${code}${ signal ? `, by signal ${ signal }` : '' }.`
+    const message = `process (${child.pid}) (${cmd}) exited ${code}${ signal ? `, by signal ${ signal }` : '' }.`
     
     if (print.code || code || signal)
         console.log(message[code || signal ? 'red' : 'blue'])
