@@ -24,7 +24,7 @@ import type { Context } from 'koa'
 import './prototype.js'
 import { log_section, log_line, delay, inspect, set_inspect_options } from './utils.js'
 import { fread, fwrite, fwatchers } from './file.js'
-import { fp_root } from './process.js'
+import { fpd_root } from './process.js'
 
 
 declare global {
@@ -438,7 +438,7 @@ export let ts_options_commonjs: any
 export let ts_options_commonjs_repl: any
 
 export async function load_tsconfig () {
-    const fp = `${fp_root}tsconfig.json`
+    const fp = `${fpd_root}tsconfig.json`
     ;({ config: { compilerOptions: ts_options } } = ts.parseConfigFileTextToJson(
         fp, 
         await fread(fp, { print: false })

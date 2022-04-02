@@ -148,6 +148,27 @@ export function typed_array_to_buffer (view: ArrayBufferView) {
 }
 
 
+/** 时间间隔 (milliseconds) 格式化 */
+export function delta2str (delta: number) {
+    // [0, 1000) ms
+    if (delta < 1000)
+        return `${delta} ms`
+    
+    // 1.123 s
+    if (1000 <= delta && delta < 1000 * 60)
+        return `${(delta / 1000).toFixed(2)} s`
+    
+    // 1 min 12 s [1 min 0s, 60 min)
+    const seconds = delta / 1000
+    
+    if (seconds < 60 * 60)
+        return `${Math.trunc(seconds / 60)} min ${seconds % 60} s`
+    
+    const hour = Math.trunc(seconds / 3600)
+    
+    return `${hour} h ${Math.trunc((seconds - 3600 * hour) / 60)} min ${seconds % 60} s`
+}
+
 // ------------------------------------ log: module loaded, section, line
 export function log_section (
     message: string, 

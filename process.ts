@@ -11,7 +11,7 @@ import './prototype.js'
 import { Encoding } from './file.js'
 import { inspect } from './utils.js'
 
-export const fp_root = `${__dirname}/`.to_slash()
+export const fpd_root = `${__dirname}/`.to_slash()
 
 export const exe_node = process.execPath.to_slash()
 
@@ -54,7 +54,7 @@ interface StartOptions {
         - detached?: `false` whether to break the connection with child (ignore stdio, unref)
 */
 export async function start (exe: string, args: string[] = [ ], {
-    cwd = fp_root,
+    cwd = fpd_root,
     
     encoding = 'utf-8',
     

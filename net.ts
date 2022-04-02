@@ -675,6 +675,9 @@ export class Remote {
         message: Message,
         handler: (message: Message<T>) => any
     ) {
+        if (this.websocket?.readyState !== WebSocket.OPEN)
+            throw new Error('websocket 连接已断开，无法调用 remote.call')
+        
         return new Promise<R>((resolve, reject) => {
             this.handlers[this.id] = async (message: Message<T>) => {
                 const { error, done } = message
