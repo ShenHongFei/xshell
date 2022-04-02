@@ -1,6 +1,6 @@
 {
     "name": "xshell",
-    "version": "0.0.41",
+    "version": "0.0.42",
     "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js",
@@ -78,7 +78,7 @@
         "colors": "^1.4.0",
         "commander": "^8.3.0",
         "ejs": "^3.1.6",
-        "emoji-regex": "^10.0.1",
+        "emoji-regex": "^10.1.0",
         "fs-extra": "^10.0.1",
         "fs-monkey": "^1.0.3",
         "gulp-sort": "^2.0.0",
