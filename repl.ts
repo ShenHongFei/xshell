@@ -22,7 +22,7 @@ import type { Context } from 'koa'
 
 
 import './prototype.js'
-import { log_section, log_line, delay, inspect, set_inspect_options } from './utils.js'
+import { log_section, log_line, delay, inspect, set_inspect_options, delta2str } from './utils.js'
 import { fread, fwrite, fwatchers } from './file.js'
 import { fpd_root } from './process.js'
 
@@ -469,20 +469,17 @@ export async function load_tsconfig () {
 let eval_id = 0
 
 export async function eval_ts (code: string) {
-    try {
-        const js = await compile_ts({ code })
-        global.__ = await nvm.runInThisContext(js, `repl/${eval_id++}.ts`)
-        
-        return global.__
-    } catch (error) {
-        console.error(error)
-        return error
-    }
+    return nvm.runInThisContext(
+        await compile_ts({ code }),
+        `repl/${eval_id++}.ts`
+    )
 }
 
 
 // ------------------------------------ repl
 export async function repl_code (type: 'ts', ...args: any[]) {
+    const time_start = new Date()
+    
     log_line()
     
     // --- run code
@@ -494,7 +491,12 @@ export async function repl_code (type: 'ts', ...args: any[]) {
         inspect(__, { limit: inspection_limit })
     )
     
-    console.log('\n\n')
+    console.log(
+        `(${delta2str(
+            new Date().getTime() - time_start.getTime()
+        )})\n` +
+        '\n'
+    )
     
     return __
 }

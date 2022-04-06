@@ -138,5 +138,3 @@ export class RWDict extends Dict {
         return JSON.stringify(this._dict, null, 4)
     }
 }
-
-export default RWDict

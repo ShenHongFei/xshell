@@ -3,7 +3,7 @@
 import path from 'upath'
 import { program } from 'commander'
 
-import scanner from './scanner/index.js'
+import { scanner } from './scanner/index.js'
 import { try_load_dict } from './utils.js'
 
 ;(async function main () {

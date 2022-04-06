@@ -18,7 +18,7 @@ import {
     LANGUAGES,
     type Language,
 } from '../index.js'
-import Dict from '../rwdict.js'
+import { RWDict } from '../rwdict.js'
 import type { _Dict } from '../dict.js'
 import { try_load_dict } from '../utils.js'
 
@@ -156,7 +156,7 @@ export async function scanner (rootdir: string = path.normalize(process.cwd()), 
         }
     }
     
-    let dict = new Dict()
+    let dict = new RWDict()
     
     for (const fp_dict of config.dict)
         dict.merge(
@@ -465,5 +465,3 @@ export async function scanner (rootdir: string = path.normalize(process.cwd()), 
             })
     })
 }
-
-export default scanner

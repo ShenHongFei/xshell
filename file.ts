@@ -1,9 +1,11 @@
-import { promises as fsp, watch } from 'fs'
+import {
+    promises as fsp,
+    watch,
+} from 'fs'
 import type fs from 'fs'
 
 import path from 'upath'
 import iconv from 'iconv-lite'
-import { readdirAsync } from 'readdir-enhanced'
 import fse from 'fs-extra'
 import rimraf from 'rimraf'
 
@@ -19,7 +21,6 @@ declare module 'memfs' {
 }
 
 import { to_json } from './prototype.js'
-import { dedent } from './utils.js'
 export * from './ufs.js'
 
 
@@ -130,51 +131,91 @@ export async function fappend (fp: string, data: any, { dir, print = true }: { d
     - fpd: absolute path of directory
     - optoins?:
         - deep?: `false` recursively
-        - absolute?: `false` return absolute path
+        - absolute?: `false` Return, print full path instead of relative path
         - print?: `true`
-        - filter?: `true`  RegExp | (fp: string) => any
+        - filter?: `true`  RegExp | (fp: string) => any, Note that when deep = true, 
+            directories and files in directories that are filtered out by the filter will not be included in the results
 */
-export async function flist (fpd: string, {
-    filter, 
-    deep = false, 
-    absolute = false,
-    print = true
-}: {
-    filter?: RegExp | ((fp: string) => any)
-    deep?: boolean
-    absolute?: boolean
-    print?: boolean
-} = { }) {
+export async function flist (
+    fpd: string,
+    options: {
+        filter?: RegExp | ((fp: string) => any)
+        deep?: boolean
+        absolute?: boolean
+        print?: boolean
+    } = { }
+): Promise<string[]> {
+    const {
+        filter,
+        deep = false,
+        absolute = false,
+        print = true,
+    } = options
+    
     if (!path.isAbsolute(fpd))
-        throw new Error('fpd must be absolute path')
+        throw new Error(`fpd (${fpd}) must be absolute path`)
     
-    let fps = await readdirAsync(fpd, {
-        ...(absolute ? { basePath: fpd } : { }),
-        deep,
-        stats: false,
+    if (!fpd.endsWith('/'))
+        throw new Error(`Argument fpd (${fpd}) must end with /`)
+    
+    // readdir withFileTypes 参数在底层有什么区别，速度上有什么差异
+    // 都调用了 uv_fs_scandir, 且调用参数相同，仅仅是 Node.js 侧的回调不同 AfterScanDir / AfterScanDirWithTypes
+    // 回调中通过 uv_fs_scandir_next 获取到每个条目的信息，而 uv_fs_scandir_next 中都会读取 type
+    // 速度上：都在 0.2 ms 左右就可以完成
+    
+    const files = await fsp.readdir(fpd, {
+        withFileTypes: true,
+        encoding: 'utf-8',
     })
-    
-    let fps_: string[] = [ ]
     
     const filter_regexp = filter instanceof RegExp
     const filter_fn = Boolean(filter && !filter_regexp)
     
-    for (let fp of fps) {
-        fp = path.normalize(fp)
+    let fps: string[] = [ ]
+    
+    for (const file of files) {
+        const fp = 
+            (absolute ? fpd : '') +
+            file.name +
+            (file.isDirectory() ? '/' : '')
         
         if (filter_regexp && !filter.test(fp))
             continue
-            
+        
         if (filter_fn && !(filter as Function)(fp))
             continue
-            
+        
         if (print)
             console.log(fp)
         
-        fps_.push(fp)
+        fps.push(fp)
     }
     
-    return fps_
+    return deep ? (
+                await Promise.all(
+                    fps.map(async fp => 
+                        fp.endsWith('/') ?
+                            [
+                                fp,
+                                ... await flist(
+                                    absolute ? fp : fpd + fp,
+                                    options
+                                )
+                            ]
+                        :
+                            fp)
+                )
+            ).flat()
+        :
+            fps
+}
+
+
+export async function fstat (fp: string) {
+    if (!path.isAbsolute(fp))
+        throw new Error(`fp (${fp}) must be absolute path`)
+    
+    return fsp.stat(fp, { bigint: true })
 }
 
 
@@ -349,21 +390,6 @@ export async function flink (
         fsp.symlink(fp_real, fp_link, 'junction')
     else
         fsp.symlink(fp_real, fp_link, fp_real.is_dir ? 'dir' : 'file')
-}
-
-
-export function link_shortcut (target: string, name: string, { args }: { args?: string[] } = { }) {
-    const cmd = dedent`
-        $wsh_shell                 = New-Object -comObject WScript.Shell
-        $shortcut                  = $wsh_shell.CreateShortcut("d:/links/#{name}.lnk")
-        $shortcut.TargetPath       = '${target}'
-        $shortcut.Arguments        = "${args || ''}"
-        $shortcut.WorkingDirectory = '${target.fdir}'
-        ${ target.is_dir ? '$shortcut.IconLocation = "%SystemRoot%\\System32\\SHELL32.dll,3"' : '' }
-        $shortcut.Save()
-    `
-    console.log(cmd)
-    // await psh(cmd)
 }
 
 

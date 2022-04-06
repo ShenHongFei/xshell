@@ -185,7 +185,6 @@ export async function connect_websocket (
         
         websocket.addEventListener('error', event => {
             const message = `${websocket.url} errored`
-            console.error(message, event)
             on_error?.(event, websocket)
             reject(
                 Object.assign(
@@ -259,6 +258,10 @@ export class Remote {
     
     print = false
     
+    /** 在未连接时或连接断开后，调用 call 是否自动连接到 remote */
+    autoconnect = true
+    
+    
     get connected () {
         return this.websocket?.readyState === WebSocket.OPEN
     }
@@ -278,18 +281,17 @@ export class Remote {
             )
         )
         
-        message.args ||= [ ] as T
-        
         if (message.bins) {
-            let args = message.args
+            const { bins } = message
+            let { args } = message
             
-            for (const ibin of message.bins) {
+            for (const ibin of bins) {
                 const len_buf = args[ibin]
                 args[ibin] = buf.subarray(offset, offset + len_buf)
                 offset += len_buf
             }
         }
-        
+                
         return message
     }
     
@@ -350,20 +352,29 @@ export class Remote {
         url,
         funcs = { },
         websocket,
+        autoconnect
     }: {
         url?: string
         funcs?: Remote['funcs']
         websocket?: WebSocket
+        autoconnect?: boolean
     } = { }) {
         this.url = url
         this.funcs = funcs
         this.websocket = websocket
+        
+        if (typeof autoconnect !== 'undefined')
+            this.autoconnect = autoconnect
     }
     
     
     async connect () {
         this.websocket = await connect_websocket(this.url, {
-            on_message: this.handle.bind(this)
+            on_message: this.handle.bind(this),
+            on_close: () => {
+                this.id = 0
+                this.handlers = [ ]
+            },
         })
     }
     
@@ -376,6 +387,9 @@ export class Remote {
     
     
     send (message: Message, websocket = this.websocket) {
+        if (websocket?.readyState !== WebSocket.OPEN)
+            throw new Error(`${websocket?.url || 'websocket'} 已断开，无法调用 remote.send`)
+        
         if (!('id' in message))
             message.id = this.id
         
@@ -385,12 +399,24 @@ export class Remote {
     }
     
     
-    /** 调用 remote 中的 func, 返回结果由 handler 处理，处理 done message 之后的返回值作为 call 函数的返回值 */
-    async call <T extends any[] = any[], R = any> (
+    /** 调用 remote 中的 func, 中间消息及返回结果可由 handler 处理，处理 done message 之后的返回值作为 call 函数的返回值 
+        如果为 unary rpc, 可以不传 handler, await call 之后可以得到响应 message 的 args
+    */
+    async call <T extends any[] = any[]> (
         message: Message,
-        handler: (message: Message<T>) => any
+        handler?: (message: Message<T>) => any
     ) {
-        return new Promise<R>((resolve, reject) => {
+        if (!this.connected)
+            if (this.autoconnect) {
+                if (this.websocket)
+                    console.log(`${this.url} 已断开，尝试自动重连`)
+                else
+                    console.log(`${this.url} 未连接，尝试自动连接`)
+                await this.connect()
+            } else
+                throw new Error(`${this.url} 未连接或已断开，无法调用 remote.call`)
+        
+        return new Promise<T>((resolve, reject) => {
             this.handlers[this.id] = async (message: Message<T>) => {
                 const { error, done } = message
                 
@@ -404,7 +430,10 @@ export class Remote {
                     return
                 }
                 
-                let result = await handler(message)
+                const result = handler ?
+                        await handler(message)
+                    :
+                        message.args
                 
                 if (done)
                     resolve(result)
@@ -423,6 +452,7 @@ export class Remote {
     */
     async handle (event: { data: ArrayBuffer }, websocket: WebSocket) {
         const message = Remote.parse(event.data)
+        
         const { func, id, done } = message
         
         if (this.print)
@@ -430,28 +460,31 @@ export class Remote {
         
         if (func) // 作为被调方
             try {
-                const handler = this.funcs[func] || this.funcs.default
+                const handler = this.funcs[func]
                 
                 if (!handler)
-                    throw new Error(`找不到 rpc handler: ${func}`)
+                    throw new Error(`找不到 rpc handler for '${func}'`)
                 
                 await handler(message, websocket)
             } catch (error) {
                 this.send(
                     {
-                        id: message.id,
+                        id,
                         error,
                         done: true
                     },
                     websocket
                 )
+                
                 throw error
             }
         else {  // 作为发起方
             this.handlers[id](message)
+            
             if (done)
                 this.handlers[id] = null
         }
     }
 }
+
 

@@ -188,5 +188,3 @@ export interface I18NBasic {
     intl: boolean
     language: Language
 }
-
-export default I18N

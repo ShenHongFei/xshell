@@ -46,5 +46,3 @@ export let toaster = {
 }
 
 export const toast = toaster.toast.bind(toaster) as (typeof toaster)['toast']
-
-export default toast

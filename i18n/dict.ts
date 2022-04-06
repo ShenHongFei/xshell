@@ -51,6 +51,3 @@ export type Item = {
 export interface _Dict {
     [key: string]: Item
 }
-
-
-export default Dict
