@@ -261,6 +261,8 @@ export class Remote {
     /** 在未连接时或连接断开后，调用 call 是否自动连接到 remote */
     autoconnect = true
     
+    pconnect: Promise<any>
+    
     
     get connected () {
         return this.websocket?.readyState === WebSocket.OPEN
@@ -408,11 +410,31 @@ export class Remote {
     ) {
         if (!this.connected)
             if (this.autoconnect) {
-                if (this.websocket)
-                    console.log(`${this.url} 已断开，尝试自动重连`)
-                else
-                    console.log(`${this.url} 未连接，尝试自动连接`)
-                await this.connect()
+                // 临界区：保证多个 call 并发时只连接一次
+                const ptail = this.pconnect
+                
+                let resolve: () => void
+                this.pconnect = new Promise<void>((_resolve, _reject) => {
+                    resolve = _resolve
+                })
+                
+                try {
+                    await ptail
+                } catch { }
+                // 临界区结束，只有一个 call 调用运行到这里，可以开始连接 WebSocket
+                
+                if (!this.connected) {
+                    if (this.websocket)
+                        console.log(`${this.url} 已断开，尝试自动重连`)
+                    else
+                        console.log(`${this.url} 未连接，尝试自动连接`)
+                    
+                    try {
+                        await this.connect()
+                    } finally {
+                        resolve()
+                    }
+                }
             } else
                 throw new Error(`${this.url} 未连接或已断开，无法调用 remote.call`)
         
