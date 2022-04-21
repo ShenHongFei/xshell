@@ -40,6 +40,13 @@ interface StartOptions {
     
     /** `false` whether to break the connection with child (ignore stdio, unref) */
     detached?: boolean
+    
+    /** 为 true 时会设置 UV_PROCESS_WINDOWS_HIDE  
+        然后设置启动进程的参数 CREATE_NO_WINDOW, 和 SW_HIDE  
+        d:/0/libuv/src/win/process.c  
+        具体有什么用还不清楚
+    */
+    window?: boolean
 }
 
 /** start process 
@@ -65,11 +72,13 @@ export async function start (exe: string, args: string[] = [ ], {
     detached = false,
     
     env,
+    
+    window: _window = true,
 }: StartOptions = { }): Promise<ChildProcess> {
     const options: SpawnOptions = {
         cwd,
         shell: false,
-        windowsHide: !detached,
+        windowsHide: !_window,
         stdio,
         ... env ? {
             env: { ...process.env, ...env }

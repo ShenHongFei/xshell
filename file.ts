@@ -186,7 +186,9 @@ export async function flist (
             continue
         
         if (print)
-            console.log(fp)
+            console.log(
+                deep || absolute ? fpd + fp : fp
+            )
         
         fps.push(fp)
     }
@@ -197,10 +199,11 @@ export async function flist (
                         fp.endsWith('/') ?
                             [
                                 fp,
-                                ... await flist(
+                                ... (await flist(
                                     absolute ? fp : fpd + fp,
                                     options
-                                )
+                                )).map(fp_ => 
+                                    absolute ? fp_ : fp + fp_)
                             ]
                         :
                             fp)
@@ -425,9 +428,13 @@ export async function fwatch (
     if (exec)
         await onchange('change', fp.fname)
     
+    const start = new Date().getTime()
+    
     const debounced_onchange = debounce(
         (event, fname) => {
-            console.log(`file changed (${event}): ${fname}`)
+            if (new Date().getTime() - start < 800)
+                return
+            console.log(`file ${event}: ${fname}`)
             onchange(event, path.normalize(fname))
         },
         500,

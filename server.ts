@@ -155,10 +155,11 @@ export class Server {
     */
     async parse (ctx: Context) {
         const {
-            request,
             req,
             req: { tunnel },
         } = ctx
+        
+        let { request } = ctx
         
         if (!tunnel) {
             const buf = await stream_to_buffer(req)
@@ -171,12 +172,17 @@ export class Server {
         
         
         // --- parse body
-        if (!req.body) return
+        if (!req.body)
+            return
         
         if (ctx.is('application/json') || ctx.is('text/plain'))
-            request.body = JSON.parse(req.body.toString())
+            request.body = JSON.parse(
+                req.body.toString()
+            )
         else if (ctx.is('application/x-www-form-urlencoded'))
-            request.body = qs.parse(req.body.toString())
+            request.body = qs.parse(
+                req.body.toString()
+            )
         else if (ctx.is('multipart/form-data')) {
             throw new Error('multipart/form-data is not supported')
         } else
@@ -399,9 +405,11 @@ export class Server {
             response,
         } = ctx
         
-        if (!(typeof response.body === 'undefined') || response.status !== 404) return true
+        if (!(typeof response.body === 'undefined') || response.status !== 404)
+            return true
         
-        if (method !== 'HEAD' && method !== 'GET') return false
+        if (method !== 'HEAD' && method !== 'GET')
+            return false
         
         function _log_404 () {
             let s = `${' '.repeat(13)}    ${method.toLowerCase()} 404: ${path}`
@@ -414,7 +422,8 @@ export class Server {
             await this.fsend(ctx, fp, { fs, root })
             return true
         } catch (error) {
-            if (error.status !== 404) throw error
+            if (error.status !== 404)
+                throw error
             if (log_404)
                 _log_404()
             return false
@@ -500,7 +509,10 @@ export class Server {
             response.set('cache-control', 'max-age=0, must-revalidate')
         
         if (!response.get('last-modified'))
-            response.set('last-modified', stats.mtime ? stats.mtime.toUTCString() : new Date().toUTCString())
+            response.set(
+                'last-modified',
+                stats.mtime ? stats.mtime.toUTCString() : new Date().toUTCString()
+            )
         
         const fext = path.fext
         

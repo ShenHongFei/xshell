@@ -156,7 +156,7 @@ export function delta2str (delta: number) {
     
     // 1.123 s
     if (1000 <= delta && delta < 1000 * 60)
-        return `${(delta / 1000).toFixed(2)} s`
+        return `${(delta / 1000).toFixed(1)} s`
     
     // 1 min 12 s [1 min 0s, 60 min)
     const seconds = delta / 1000
