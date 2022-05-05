@@ -96,10 +96,12 @@ export class Server {
         
         app.use(KoaCompress({
             br: {
+                chunkSize: 64 * 1024,
+                
                 // https://nodejs.org/api/zlib.html#zlib_class_brotlioptions
                 params: {
                     [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-                    [zlib.constants.BROTLI_PARAM_QUALITY]: 6  // default 11 (maximized compression), may lead to news/get generated 14mb json taking 24s
+                    [zlib.constants.BROTLI_PARAM_QUALITY]: 3  // 默认为 11 (最大压缩)，会导致 news/get 生成的 14 mb 的 json 压缩时长高达 24s
                 },
             },
             threshold: 512
