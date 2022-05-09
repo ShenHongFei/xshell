@@ -1,8 +1,8 @@
 import {
     promises as fsp,
-    watch,
+    default as fs,
 } from 'fs'
-import type fs from 'fs'
+type FileHandle = fsp.FileHandle & { fp: string }
 
 import path from 'upath'
 import iconv from 'iconv-lite'
@@ -27,6 +27,54 @@ export * from './ufs.js'
 export { MFS }
 
 export type Encoding = 'utf-8' | 'gb18030' | 'shift-jis' | 'binary'
+
+
+/** Does the file/folder pointed to by fp exist? */
+export function fexists (fp: string, { print = true }: { print?: boolean } = { }) {
+    const exists = fs.existsSync(fp)
+    
+    if (print)
+        console.log(
+            exists ? 'exists:' : 'not exists:',
+            fp
+        )
+    
+    return exists
+}
+
+
+/**
+    open file, return FileHandle  
+    Some characters (`< > : " / \ | ? *`) are reserved under Windows as documented
+    by [Naming Files, Paths, and Namespaces](https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file). Under NTFS, if the filename contains
+    a colon, Node.js will open a file system stream, as described by [this MSDN page](https://docs.microsoft.com/en-us/windows/desktop/FileIO/using-streams).
+    
+    - flags: `'r'`
+    - options?:
+        - mode?: `'0o666'` Sets the file mode (permission and sticky bits) if the file is created.
+*/
+export async function fopen (
+    fp: string,
+    flags: string | number,
+    {
+        mode,
+        print
+    }: {
+        mode?: fs.Mode
+        print?: boolean
+    } = { }
+) {
+    if (print)
+        console.log('fopen:', fp)
+    return Object.assign(
+        await fsp.open(fp, flags, mode),
+        {
+            fp,
+            flags,
+            mode
+        }
+    )
+}
 
 
 export function create_mfs () {
@@ -91,16 +139,36 @@ export async function fread_json <T = any> (fp: string, options: { dir?: string,
 }
 
 
-export async function fwrite (fp: string, data: Buffer, options?: { dir?: string, print?: boolean }): Promise<void>
-export async function fwrite (fp: string, data: any, options?: { dir?: string, encoding?: Encoding, print?: boolean }): Promise<void>
-export async function fwrite (fp: string, data: any, { dir, encoding = 'utf-8', print = true }: { dir?: string, encoding?: Encoding, print?: boolean } = { }) {
-    if (dir)
-        fp = path.join(dir, fp)
-    else if (!path.isAbsolute(fp))
-        throw new Error('fp must be absolute path, or pass in "dir" parameter')
-    
-    if (print)
-        console.log('write:', fp)
+export async function fwrite (fp: string | FileHandle, data: Buffer, options?: { dir?: string, print?: boolean, mkdir?: boolean }): Promise<void>
+export async function fwrite (fp: string | FileHandle, data: any, options?: { dir?: string, encoding?: Encoding, print?: boolean, mkdir?: boolean }): Promise<void>
+export async function fwrite (
+    fp: string | FileHandle,
+    data: any,
+    {
+        dir,
+        encoding = 'utf-8',
+        print = true,
+        mkdir = false,
+    }: {
+        dir?: string
+        encoding?: Encoding
+        print?: boolean
+        mkdir?: boolean
+    } = { }
+) {
+    const is_handle = typeof fp === 'object' && fp && 'fd' in fp
+    if (is_handle) {
+        if (print)
+            console.log('write:', (fp as FileHandle).fp)
+    } else {
+        if (dir)
+            fp = path.join(dir, fp)
+        else if (!path.isAbsolute(fp as string))
+            throw new Error('fp must be absolute path, or pass in "dir" parameter')
+        
+        if (print)
+            console.log('write:', fp)
+    }
     
     if (encoding === 'gb18030')
         data = iconv.encode(data, encoding)
@@ -108,7 +176,15 @@ export async function fwrite (fp: string, data: any, { dir, encoding = 'utf-8', 
     if (!Buffer.isBuffer(data) && typeof data !== 'string')
         data = to_json(data)
     
-    await fsp.writeFile(fp, data)
+    try {
+        await fsp.writeFile(fp, data)
+    } catch (error) {
+        if (!mkdir || error.code !== 'ENOENT' || is_handle)
+            throw error
+        
+        await fmkdir((fp as string).fdir)
+        await fsp.writeFile(fp, data)
+    }
 }
 
 export async function fappend (fp: string, data: any, { dir, print = true }: { dir?: string, print?: boolean } = { }) {
@@ -232,7 +308,7 @@ export async function fdelete (fp: string, { print = true, fast = false }: { pri
     if (!path.isAbsolute(fp))
         throw new Error('fpd must be absolute path')
     
-    if (fp.is_dir) {
+    if (fp.endsWith('/')) {
         if (print)
             console.log(`delete directory: ${fp}`.red)
         await new Promise<void>((resolve, reject) => {
@@ -257,23 +333,23 @@ export async function fdelete (fp: string, { print = true, fast = false }: { pri
     @example
     fcopy('d:/temp/camera/', 'd:/camera/')
 */
-export async function fcopy (src: string, dst: string, {
+export async function fcopy (fp_src: string, fp_dst: string, {
     print = true,
     overwrite = true,
 }: {
     print?: boolean
     overwrite?: boolean
 } = { }) {
-    if (src.endsWith('/') !== dst.endsWith('/'))
-        throw new Error('src and dst must be both file path or directory path')
+    if (fp_src.endsWith('/') !== fp_dst.endsWith('/'))
+        throw new Error('fp_src and fp_dst must be both file path or directory path')
     
-    if (!path.isAbsolute(src) || !path.isAbsolute(dst))
-        throw new Error('src and dst must be absolute path')
+    if (!path.isAbsolute(fp_src) || !path.isAbsolute(fp_dst))
+        throw new Error('fp_src and fp_dst must be absolute path')
     
     if (print)
-        console.log(`copy: ${src} → ${dst}`)
+        console.log(`copy: ${fp_src} → ${fp_dst}`)
     
-    await fse.copy(src, dst, { overwrite, errorOnExist: true })
+    await fse.copy(fp_src, fp_dst, { overwrite, errorOnExist: true })
 }
 
 
@@ -333,35 +409,59 @@ export async function frename (
     if (print)
         console.log('rename:', fp, '→', fp_)
     
-    if (!overwrite && fp_.fexists)
+    if (!overwrite && fexists(fp_))
         throw new Error(`file already exists：${fp_}`)
     
     await fsp.rename(fp, fp_)
 }
 
 
-export async function fmkdir (fpd: string, options: fs.MakeDirectoryOptions & { print?: boolean, suppress_existence?: boolean } = { }) {
+/**
+    Create folders recursively, make sure the folder pointed to by fpd exists  
+    Returns the first created folder or undefined
+    
+    - fpd: Folder full path
+    - options?:
+        - print?: `true`
+        - mode?: `'0o777'`
+*/
+export async function fmkdir (
+    fpd: string,
+    {
+        print = true,
+        mode,
+    }: {
+        print?: boolean
+        
+        /** `0o777` A file mode. If a string is passed, it is parsed as an octal integer. */
+        mode?: string | number
+    } = { }
+) {
     if (!path.isAbsolute(fpd))
-        throw new Error('fpd must be absolute path')
+        throw new Error(`fpd must be an absolute path: ${fpd}`)
     
-    options.print ??= true
+    if (!fpd.endsWith('/'))
+        throw new Error(`fpd must end with /: ${fpd}`)
     
-    if (fpd.fexists)
-        if (fpd.is_dir) {
-            if (options.print && !options.suppress_existence)
-                console.log('directory already exists:', fpd)
-            return
-        } else throw new Error(`file with same name already exists, cannot create directory: ${fpd}`)
-    else if (options.print)
-        console.log('mkdir:', fpd)
+    // CallingfsPromises.mkdir() when path is a directory that exists results in a rejection only when recursive is false.
+    const fpd_ = (
+        await fsp.mkdir(fpd, { recursive: true, mode })
+    )?.replaceAll('\\', '/')
     
-    await fsp.mkdir(fpd, { recursive: true })
+    if (fpd_) {
+        if (print)
+            console.log('folder created:', fpd)
+    } else
+        if (print)
+            console.log('folder already exists:', fpd)
+    
+    return fpd_
 }
 
 
 /** 
-    - fp_real: current real file path
-    - fp_link: file path or directory path
+    - fp_real: current real file/directory path
+    - fp_link: target file/directory path
 */
 export async function flink (
     fp_real: string, 
@@ -374,17 +474,16 @@ export async function flink (
         print?: boolean
 } = { }) {
     if (!path.isAbsolute(fp_real) || !path.isAbsolute(fp_link))
-        throw new Error('fpd must be absolute path')
+        throw new Error('fp must be absolute path')
     
-    if (fp_link.fexists)
-        if (fp_link.is_dir)
-            fp_link = path.join(fp_link, fp_real.fname)
-        else if ( (await fsp.lstat(fp_link)).isSymbolicLink() ) {
-            console.log('link already exists:', fp_link)
-            return
-        } else
-            throw new Error('file with same name already exists, cannot create new link')
-        
+    const is_fpd_real = fp_real.endsWith('/')
+    const is_fpd_link = fp_link.endsWith('/')
+    
+    if (is_fpd_real !== is_fpd_link)
+        throw new Error('fp_real and fp_link must be both file path or folder path')
+    
+    if (fexists(fp_link))
+        throw new Error(`${ is_fpd_link ? 'folder' : 'file' } exists: ${fp_link}, could not create link`)
     
     if (print)
         console.log(`source file ${fp_real} linked to ${fp_link}`)
@@ -392,7 +491,7 @@ export async function flink (
     if (junction)
         fsp.symlink(fp_real, fp_link, 'junction')
     else
-        fsp.symlink(fp_real, fp_link, fp_real.is_dir ? 'dir' : 'file')
+        fsp.symlink(fp_real, fp_link, is_fpd_real ? 'dir' : 'file')
 }
 
 
@@ -441,7 +540,7 @@ export async function fwatch (
         { leading: false, trailing: true }
     )
     
-    let watcher = watch(fp, debounced_onchange)
+    let watcher = fs.watch(fp, debounced_onchange)
     watcher.on('error', error => {
         console.error(error)
     })
@@ -478,7 +577,7 @@ export async function f2utf8 (fp: string, {
     }
     
     const fp_bak = `${fp.fdir}${fp.fname.replace(/(.*?)(\.[^.]+)?$/, '$1.bak$2')}`
-    if (!fp_bak.fexists)
+    if (!fexists(fp_bak))
         await fcopy(fp, fp_bak)
     
     await fwrite(fp, text)

@@ -159,11 +159,6 @@ declare global {
         /** .txt */
         fext: string
         
-        /** fs.existsSync */
-        fexists: boolean
-        
-        is_dir: boolean
-        
         to_slash (this: string): string
         
         to_backslash (this: string): string
@@ -230,8 +225,6 @@ declare global {
     }
 }
 
-
-import fs from 'fs'
 
 import path from 'upath'
 import byte_size from 'byte-size'
@@ -707,19 +700,6 @@ Object.defineProperties(String.prototype, {
         
         fext (this: string) {
             return path.extname(this)
-        },
-        
-        fexists (this: string) {
-            return fs.existsSync(this)
-        },
-        
-        is_dir (this: string) {
-            if (this.endsWith('/')) return true
-            try {
-                return fs.lstatSync(this).isDirectory()
-            } catch (error) {
-                return false
-            }
         },
     }),
     

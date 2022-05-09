@@ -530,7 +530,7 @@ export class Remote {
     funcs: Record<
         string, 
         (message: Message, websocket?: WebSocket) => void | Promise<void>
-    >
+    > = { }
     
     /** 调用方发起的 rpc 对应响应的 message 处理器 */
     handlers: ((message: Message) => any)[] = [ ]
@@ -631,7 +631,7 @@ export class Remote {
     
     constructor ({
         url,
-        funcs = { },
+        funcs,
         websocket,
         autoconnect
     }: {
@@ -641,7 +641,10 @@ export class Remote {
         autoconnect?: boolean
     } = { }) {
         this.url = url
-        this.funcs = funcs
+        
+        if (funcs)
+            this.funcs = funcs
+        
         this.websocket = websocket
         
         if (typeof autoconnect !== 'undefined')
