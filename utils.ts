@@ -159,7 +159,7 @@ export function delta2str (delta: number) {
         return `${(delta / 1000).toFixed(1)} s`
     
     // 1 min 12 s [1 min 0s, 60 min)
-    const seconds = delta / 1000
+    const seconds = Math.trunc(delta / 1000)
     
     if (seconds < 60 * 60)
         return `${Math.trunc(seconds / 60)} min ${seconds % 60} s`
