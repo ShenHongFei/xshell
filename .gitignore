@@ -5,6 +5,7 @@ node_modules
 *.map
 *.vsix
 *.d.ts
+*.woff2
 
 /i18n/test/*.json
 /i18n/test/i18n
