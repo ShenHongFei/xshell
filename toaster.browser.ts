@@ -1,6 +1,6 @@
 import './toaster.sass'
 
-import { delay } from './utils.browser'
+import { delay } from './utils.browser.js'
 
 export let toaster = {
     messages: [ ] as string[],
