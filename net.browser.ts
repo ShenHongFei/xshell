@@ -1,3 +1,5 @@
+/// <reference types='tampermonkey' />
+
 import { concat } from './utils.browser.js'
 
 export interface RequestOptions {
