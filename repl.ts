@@ -66,7 +66,7 @@ const {
 } = ts
 
 
-let server: import('./server').Server
+let server: import('./server.js').Server
 
 let inspection_limit    = 10000
 let printing_compiled_js = false

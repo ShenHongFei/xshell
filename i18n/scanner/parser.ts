@@ -2,7 +2,8 @@ import castArray from 'lodash/castArray.js'
 import trim from 'lodash/trim.js'
 import _get from 'lodash/get.js'
 
-import traverse from '@babel/traverse'
+import babel_traverse from '@babel/traverse'
+const { default: traverse } = babel_traverse
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 

@@ -4,14 +4,16 @@ import {
     type ChildProcess
 } from 'child_process'
 import { Readable } from 'stream'
+import { fileURLToPath } from 'url'
 
 import iconv from 'iconv-lite'
+import path from 'upath'
 
 import './prototype.js'
 import { Encoding } from './file.js'
 import { inspect } from './utils.js'
 
-export const fpd_root = `${__dirname}/`.to_slash()
+export const fpd_root = `${path.dirname(fileURLToPath(import.meta.url))}/`
 
 export const exe_node = process.execPath.to_slash()
 

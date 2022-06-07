@@ -1,10 +1,10 @@
 {
     "compilerOptions": {
         // --- module
-        "module": "CommonJS", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
-        "moduleResolution": "Node",
+        "module": "NodeNext", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
+        "moduleResolution": "NodeNext",
         "allowSyntheticDefaultImports": true,
-        "esModuleInterop": true,
+        "esModuleInterop": false,
         "resolveJsonModule": true,
         "isolatedModules": true,
         

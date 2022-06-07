@@ -5,6 +5,8 @@ node_modules/
 !*.d.ts
 *.pptx
 *.vsix
+*.cjs
+*.cjs.map
 
 desktop.ini
 dict.json

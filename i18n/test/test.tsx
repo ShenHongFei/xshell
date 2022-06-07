@@ -1,4 +1,5 @@
 import React from 'react'
+import type { } from 'react-i18next'
 
 import { I18N } from '../index.js'
 
@@ -57,6 +58,7 @@ export function Test () {
     
     return <div>
         <Trans>温馨提示：<br /><br />1. 巴拉巴拉；<br /><br />2. 巴拉巴拉；</Trans>
+        {/* @ts-ignore */}
         <Trans count={count} tOptions={{  }}>Hello <strong title='this is your name'>{{name}}</strong>, you have {{count}} unread message(s). <a href='/msgs'>Go to messages</a>.</Trans><br/>
         <Trans >联系我们 {{ name }} 测试插值</Trans><br/>
         <Trans tOptions={{ language: 'ko' }}>书</Trans><br/>

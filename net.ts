@@ -15,7 +15,6 @@ import promise_retry from 'promise-retry'
 import { WebSocket } from 'ws'
 
 import iconv from 'iconv-lite'
-import cheerio from 'cheerio'
 import qs from 'qs'
 import { Cookie, MemoryCookieStore } from 'tough-cookie'
 
@@ -328,7 +327,9 @@ export async function request_json <T = any> (url: string | URL, options?: Reque
 
 
 /** use $.html(cheerio_element) to get outer html */
-export function parse_html (html: string) {
+export async function parse_html (html: string) {
+    const { default: cheerio } = await import('cheerio')
+    
     let $ = cheerio.load(html, { decodeEntities: false })
     
     Object.defineProperty($, inspect.custom, {

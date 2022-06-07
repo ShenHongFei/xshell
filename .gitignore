@@ -6,6 +6,7 @@ node_modules
 *.vsix
 *.d.ts
 *.woff2
+*.cjs
 
 /i18n/test/*.json
 /i18n/test/i18n
