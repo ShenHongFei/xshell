@@ -7,7 +7,6 @@ type FileHandle = fsp.FileHandle & { fp: string }
 import path from 'upath'
 import iconv from 'iconv-lite'
 import fse from 'fs-extra'
-import rimraf from 'rimraf'
 
 import debounce from 'lodash/debounce.js'
 
@@ -298,31 +297,39 @@ export async function fstat (fp: string) {
 }
 
 
-/** delete file or directory (use rimraf to delete directory fast)  
-    - fp: path
+/** delete files or folders  
+    - fp: file path
     - options?:
-        - print?: `true` (effective only delete single file)
-*/
-export async function fdelete (fp: string, { print = true, fast = false }: { print?: boolean, fast?: boolean } = { }) {
-    if (fp.length < 6) throw new Error(`${fp} too short`)
-    if (!path.isAbsolute(fp))
-        throw new Error('fpd must be absolute path')
+        - print?: `true`
     
-    if (fp.endsWith('/')) {
+    Returns whether the delete operation actually took place
+*/
+export async function fdelete (fp: string, { print = true }: { print?: boolean } = { }) {
+    if (fp.length < 6)
+        throw new Error(`${fp} 太短`)
+    
+    if (!path.isAbsolute(fp))
+        throw new Error('fp must be an absolute path')
+    
+    try {
+        await fsp.rm(fp, { recursive: true })
         if (print)
-            console.log(`delete directory: ${fp}`.red)
-        await new Promise<void>((resolve, reject) => {
-            rimraf(fp, { glob: false, disableGlob: true }, error => {
-                if (error)
-                    reject(error)
+            if (fp.endsWith('/'))
+                console.log(`deleted folder: ${fp}`.red)
+            else
+                console.log(`deleted file: ${fp}`.red)
+        return true
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            if (print)
+                if (fp.endsWith('/'))
+                    console.log(`folder no longer exists: ${fp}`)
                 else
-                    resolve()
-            })
-        })
-    } else {
-        if (print)
-            console.log('delete:', fp)
-        await fsp.unlink(fp)
+                    console.log(`file no longer exists: ${fp}`)
+            return false
+        }
+        
+        throw error
     }
 }
 
