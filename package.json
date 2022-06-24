@@ -2,7 +2,7 @@
     "name": "xshell",
     "version": "0.0.57",
     "type": "module",
-    "main": "./extension.cjs",
+    "main": "./index.js",
     "bin": {
         "xshell": "./xshell.js",
         "i18n-scan": "./i18n/i18n-scan.js"
