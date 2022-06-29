@@ -1,6 +1,6 @@
 {
     "name": "xshell",
-    "version": "0.0.57",
+    "version": "0.0.58",
     "type": "module",
     "main": "./index.js",
     "bin": {
@@ -65,14 +65,14 @@
         ]
     },
     "dependencies": {
-        "@babel/core": "^7.18.5",
-        "@babel/parser": "^7.18.5",
-        "@babel/traverse": "^7.18.5",
+        "@babel/core": "^7.18.6",
+        "@babel/parser": "^7.18.6",
+        "@babel/traverse": "^7.18.6",
         "@koa/cors": "^3.3.0",
         "byte-size": "^8.1.0",
         "chalk": "^5.0.1",
         "chardet": "^1.4.0",
-        "cheerio": "^1.0.0-rc.11",
+        "cheerio": "^1.0.0-rc.12",
         "cli-table3": "^0.6.2",
         "cli-truncate": "^3.1.0",
         "colors": "^1.4.0",
@@ -83,7 +83,7 @@
         "fs-monkey": "^1.0.3",
         "gulp-sort": "^2.0.0",
         "hash-string": "^1.0.0",
-        "i18next": "^21.8.10",
+        "i18next": "^21.8.11",
         "i18next-scanner": "^3.3.0",
         "iconv-lite": "^0.6.3",
         "js-cookie": "^3.0.1",
@@ -92,12 +92,12 @@
         "koa-useragent": "^4.0.0",
         "lodash": "^4.17.21",
         "map-stream": "0.0.7",
-        "memfs": "^3.4.6",
-        "ora": "^6.1.0",
+        "memfs": "^3.4.7",
+        "ora": "^6.1.2",
         "promise-retry": "^2.0.1",
-        "qs": "^6.10.5",
+        "qs": "^6.11.0",
         "react": "^18.2.0",
-        "react-i18next": "^11.17.2",
+        "react-i18next": "^11.17.3",
         "request": "^2.88.2",
         "request-promise-native": "^1.0.9",
         "resolve-path": "^1.4.0",
@@ -112,7 +112,7 @@
         "ws": "^8.8.0"
     },
     "devDependencies": {
-        "@babel/types": "^7.18.4",
+        "@babel/types": "^7.18.7",
         "@types/babel__traverse": "^7.17.1",
         "@types/byte-size": "^8.1.0",
         "@types/chardet": "^0.8.1",
@@ -134,9 +134,9 @@
         "@types/stream-buffers": "^3.0.4",
         "@types/tampermonkey": "^4.0.5",
         "@types/vinyl-fs": "^2.4.12",
-        "@types/vscode": "^1.68.0",
+        "@types/vscode": "^1.68.1",
         "@types/ws": "^8.5.3",
         "source-map-loader": "^4.0.0",
-        "ts-loader": "^9.3.0"
+        "ts-loader": "^9.3.1"
     }
 }

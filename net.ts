@@ -205,7 +205,7 @@ export async function request (url: string | URL, {
         
         headers: {
             'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja-JP;q=0.6,ja;q=0.5',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
             ... body ? { 'content-type': type } : { }, 
             ... cookies ? {
                 cookie: Object.entries(cookies)
@@ -426,6 +426,12 @@ let decoder = new TextDecoder()
 let encoder = new TextEncoder()
 
 
+/** 连接 websocket url, 设置各种事件监听器  
+    - url
+    - options:
+        - on_message: 根据 websocket frame 的 opcode 不同 (text frame 或 binary frame) event 中的 data 对应为 ArrayBuffer 或者 string
+          https://datatracker.ietf.org/doc/html/rfc6455#section-5.2
+*/
 export async function connect_websocket (
     url: string | URL,
     {
@@ -441,10 +447,17 @@ export async function connect_websocket (
         on_open? (event: any, websocket: WebSocket): any
         on_close? (event: { code: number, reason: string }, websocket: WebSocket): any
         on_error? (event: any, websocket: WebSocket): any
-        on_message (event: { data: ArrayBuffer }, websocket: WebSocket): any
+        on_message (event: { data: ArrayBuffer | string }, websocket: WebSocket): any
     }
 ) {
-    let websocket = new WebSocket(url, protocols, { maxPayload: max_payload })
+    let websocket = new WebSocket(
+        url,
+        protocols,
+        {
+            maxPayload: max_payload,
+            skipUTF8Validation: true
+        }
+    )
     
     // https://stackoverflow.com/questions/11821096/what-is-the-difference-between-an-arraybuffer-and-a-blob/39951543
     websocket.binaryType = 'arraybuffer'

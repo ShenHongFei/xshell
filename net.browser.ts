@@ -150,6 +150,12 @@ let decoder = new TextDecoder()
 let encoder = new TextEncoder()
 
 
+/** 连接 websocket url, 设置各种事件监听器  
+    - url
+    - options:
+        - on_message: 根据 websocket frame 的 opcode 不同 (text frame 或 binary frame) event 中的 data 对应为 ArrayBuffer 或者 string
+          https://datatracker.ietf.org/doc/html/rfc6455#section-5.2
+*/
 export async function connect_websocket (
     url: string | URL,
     {
@@ -163,7 +169,7 @@ export async function connect_websocket (
         on_open? (event: any, websocket: WebSocket): any
         on_close? (event: { code: number, reason: string }, websocket: WebSocket): any
         on_error? (event: any, websocket: WebSocket): any
-        on_message (event: { data: ArrayBuffer }, websocket: WebSocket): any
+        on_message (event: { data: ArrayBuffer | string }, websocket: WebSocket): any
     }
 ) {
     let websocket = new WebSocket(url, protocols)
